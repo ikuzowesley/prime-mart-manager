@@ -1,0 +1,4734 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Prime Mart Supermarket — POS & Inventory System</title>
+    <!-- SheetJS for optional Excel (.xlsx) file processing when online; built-in native CSV parser works 100% offline -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+    <style>
+      *,
+      *::before,
+      *::after {
+        box-sizing: border-box;
+      }
+      :root {
+        --green: #0a7d3b;
+        --green-dark: #065a28;
+        --green-light: #e6f4ec;
+        --green-hover: #0d9145;
+        --bg: #f4f6f5;
+        --card: #ffffff;
+        --text: #111827;
+        --muted: #6b7280;
+        --border: #e5e7eb;
+        --red: #dc2626;
+        --red-light: #fee2e2;
+        --orange: #ea580c;
+        --orange-light: #ffedd5;
+        --blue: #2563eb;
+        --blue-light: #dbeafe;
+        --yellow: #ca8a04;
+        --yellow-light: #fef9c3;
+        --radius: 8px;
+        --shadow: 0 1px 3px rgba(0, 0, 0, 0.06), 0 1px 2px rgba(0, 0, 0, 0.04);
+        --shadow-lg: 0 10px 25px -5px rgba(0, 0, 0, 0.1), 0 8px 10px -6px rgba(0, 0, 0, 0.08);
+      }
+      html,
+      body {
+        margin: 0;
+        padding: 0;
+        font-family:
+          -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+        background: var(--bg);
+        color: var(--text);
+        font-size: 14px;
+        line-height: 1.4;
+      }
+      a {
+        color: var(--green);
+        text-decoration: none;
+      }
+      button {
+        font-family: inherit;
+        cursor: pointer;
+        border: none;
+        background: none;
+        transition: all 0.15s ease;
+      }
+      input,
+      select,
+      textarea {
+        font-family: inherit;
+        font-size: 14px;
+        padding: 9px 12px;
+        border: 1px solid var(--border);
+        border-radius: var(--radius);
+        background: #fff;
+        width: 100%;
+        color: var(--text);
+      }
+      input:focus,
+      select:focus,
+      textarea:focus {
+        outline: none;
+        border-color: var(--green);
+        box-shadow: 0 0 0 3px rgba(10, 125, 59, 0.18);
+      }
+
+      .app {
+        display: flex;
+        min-height: 100vh;
+      }
+
+      /* Sidebar */
+      .sidebar {
+        width: 250px;
+        background: #fff;
+        border-right: 1px solid var(--border);
+        position: sticky;
+        top: 0;
+        height: 100vh;
+        display: flex;
+        flex-direction: column;
+        z-index: 40;
+        flex-shrink: 0;
+      }
+      .brand {
+        padding: 18px 16px;
+        background: var(--green);
+        color: #fff;
+        display: flex;
+        align-items: center;
+        gap: 12px;
+      }
+      .brand-logo {
+        width: 36px;
+        height: 36px;
+        background: rgba(255, 255, 255, 0.2);
+        border-radius: 8px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 20px;
+        flex-shrink: 0;
+      }
+      .brand-info h1 {
+        font-size: 15px;
+        font-weight: 700;
+        margin: 0;
+        letter-spacing: -0.2px;
+      }
+      .brand-info small {
+        font-size: 11px;
+        opacity: 0.9;
+        display: block;
+        margin-top: 2px;
+      }
+      .nav {
+        flex: 1;
+        padding: 12px 8px;
+        overflow-y: auto;
+      }
+      .nav-group-title {
+        font-size: 10px;
+        font-weight: 700;
+        color: var(--muted);
+        text-transform: uppercase;
+        letter-spacing: 0.8px;
+        padding: 10px 12px 4px;
+      }
+      .nav button {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        width: 100%;
+        padding: 10px 14px;
+        border-radius: var(--radius);
+        text-align: left;
+        color: #374151;
+        font-size: 13.5px;
+        font-weight: 500;
+        margin-bottom: 2px;
+      }
+      .nav button:hover {
+        background: var(--green-light);
+        color: var(--green-dark);
+      }
+      .nav button.active {
+        background: var(--green);
+        color: #fff;
+        font-weight: 600;
+      }
+      .nav button.active .nav-icon {
+        stroke: #fff;
+      }
+      .nav-icon {
+        width: 18px;
+        height: 18px;
+        flex-shrink: 0;
+        stroke: currentColor;
+      }
+      .nav-badge {
+        margin-left: auto;
+        background: var(--red);
+        color: #fff;
+        font-size: 10px;
+        font-weight: 700;
+        padding: 2px 6px;
+        border-radius: 10px;
+      }
+
+      .sidebar-footer {
+        padding: 12px 16px;
+        border-top: 1px solid var(--border);
+        font-size: 11px;
+        color: var(--muted);
+        background: #fafafa;
+      }
+
+      /* Main Container */
+      .main {
+        flex: 1;
+        padding: 24px 28px;
+        min-width: 0;
+        overflow-y: auto;
+        max-height: 100vh;
+      }
+      .header-bar {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 20px;
+        flex-wrap: wrap;
+        gap: 12px;
+      }
+      .page-title {
+        font-size: 22px;
+        font-weight: 700;
+        margin: 0;
+        color: #111827;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+      }
+      .page-sub {
+        color: var(--muted);
+        font-size: 13px;
+        margin: 3px 0 0;
+      }
+
+      /* Cards */
+      .cards {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+        gap: 14px;
+        margin-bottom: 22px;
+      }
+      .card {
+        background: var(--card);
+        border: 1px solid var(--border);
+        border-radius: 10px;
+        padding: 16px;
+        box-shadow: var(--shadow);
+        position: relative;
+        overflow: hidden;
+      }
+      .card .label {
+        color: var(--muted);
+        font-size: 11px;
+        font-weight: 600;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+        margin-bottom: 6px;
+      }
+      .card .value {
+        font-size: 21px;
+        font-weight: 700;
+        color: var(--green-dark);
+      }
+      .card .sub {
+        font-size: 11.5px;
+        color: var(--muted);
+        margin-top: 4px;
+      }
+      .card.alert {
+        border-color: #fca5a5;
+        background: #fffaf9;
+      }
+      .card.alert .value {
+        color: var(--red);
+      }
+      .card.warning {
+        border-color: #fde047;
+        background: #fffdf0;
+      }
+      .card.warning .value {
+        color: var(--yellow);
+      }
+
+      /* Panels */
+      .panel {
+        background: var(--card);
+        border: 1px solid var(--border);
+        border-radius: 10px;
+        padding: 20px;
+        margin-bottom: 20px;
+        box-shadow: var(--shadow);
+      }
+      .panel-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 16px;
+        flex-wrap: wrap;
+        gap: 10px;
+      }
+      .panel h2 {
+        margin: 0;
+        font-size: 16px;
+        font-weight: 700;
+        color: #111827;
+      }
+
+      /* Forms */
+      .form-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+        gap: 14px;
+      }
+      label {
+        display: block;
+        font-size: 12px;
+        font-weight: 600;
+        color: #374151;
+        margin-bottom: 5px;
+      }
+      .help-text {
+        font-size: 11px;
+        color: var(--muted);
+        margin-top: 3px;
+      }
+      .full {
+        grid-column: 1/-1;
+      }
+
+      /* Buttons */
+      .btn {
+        padding: 8px 16px;
+        border-radius: var(--radius);
+        font-weight: 600;
+        font-size: 13.5px;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        gap: 6px;
+        transition: all 0.15s;
+      }
+      .btn-primary {
+        background: var(--green);
+        color: #fff;
+      }
+      .btn-primary:hover {
+        background: var(--green-hover);
+      }
+      .btn-secondary {
+        background: #4b5563;
+        color: #fff;
+      }
+      .btn-secondary:hover {
+        background: #374151;
+      }
+      .btn-outline {
+        background: #fff;
+        color: #374151;
+        border: 1px solid var(--border);
+      }
+      .btn-outline:hover {
+        background: #f9fafb;
+        border-color: #d1d5db;
+      }
+      .btn-outline-primary {
+        background: #fff;
+        color: var(--green);
+        border: 1px solid var(--green);
+      }
+      .btn-outline-primary:hover {
+        background: var(--green-light);
+      }
+      .btn-danger {
+        background: var(--red);
+        color: #fff;
+      }
+      .btn-danger:hover {
+        background: #b91c1c;
+      }
+      .btn-danger-outline {
+        background: #fff;
+        color: var(--red);
+        border: 1px solid #fca5a5;
+      }
+      .btn-danger-outline:hover {
+        background: var(--red-light);
+      }
+      .btn-success {
+        background: #16a34a;
+        color: #fff;
+      }
+      .btn-success:hover {
+        background: #15803d;
+      }
+      .btn-small {
+        padding: 5px 10px;
+        font-size: 12px;
+        border-radius: 6px;
+      }
+      .btn-large {
+        padding: 12px 22px;
+        font-size: 15px;
+      }
+      .btn:disabled {
+        opacity: 0.5;
+        cursor: not-allowed;
+      }
+
+      /* Tables */
+      .table-wrap {
+        overflow-x: auto;
+        background: #fff;
+        border: 1px solid var(--border);
+        border-radius: var(--radius);
+      }
+      table {
+        width: 100%;
+        border-collapse: collapse;
+        min-width: 650px;
+        text-align: left;
+      }
+      th {
+        background: #f9fafb;
+        color: #4b5563;
+        padding: 10px 12px;
+        font-size: 11.5px;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+        font-weight: 600;
+        border-bottom: 1px solid var(--border);
+      }
+      td {
+        padding: 10px 12px;
+        border-bottom: 1px solid #f3f4f6;
+        font-size: 13px;
+        vertical-align: middle;
+      }
+      tr:last-child td {
+        border-bottom: none;
+      }
+      tr:hover td {
+        background: #f9fafb;
+      }
+      .text-right {
+        text-align: right;
+      }
+      .text-center {
+        text-align: center;
+      }
+
+      /* Badges */
+      .badge {
+        display: inline-flex;
+        align-items: center;
+        padding: 3px 8px;
+        border-radius: 99px;
+        font-size: 11px;
+        font-weight: 600;
+      }
+      .badge-green {
+        background: var(--green-light);
+        color: var(--green-dark);
+      }
+      .badge-orange {
+        background: var(--orange-light);
+        color: var(--orange);
+      }
+      .badge-red {
+        background: var(--red-light);
+        color: var(--red);
+      }
+      .badge-blue {
+        background: var(--blue-light);
+        color: var(--blue);
+      }
+      .badge-gray {
+        background: #f3f4f6;
+        color: #4b5563;
+      }
+
+      /* Toolbar */
+      .toolbar {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 10px;
+        align-items: center;
+        margin-bottom: 14px;
+      }
+      .toolbar .grow {
+        flex: 1 1 220px;
+      }
+
+      /* POS Screen Layout */
+      .pos-layout {
+        display: grid;
+        grid-template-columns: 1fr 380px;
+        gap: 20px;
+        align-items: start;
+      }
+      .pos-catalog {
+        background: #fff;
+        border: 1px solid var(--border);
+        border-radius: 10px;
+        padding: 16px;
+        box-shadow: var(--shadow);
+      }
+      .category-pills {
+        display: flex;
+        gap: 6px;
+        overflow-x: auto;
+        padding-bottom: 10px;
+        margin-bottom: 12px;
+      }
+      .category-pill {
+        padding: 5px 12px;
+        border-radius: 20px;
+        font-size: 12px;
+        font-weight: 500;
+        white-space: nowrap;
+        background: #f3f4f6;
+        color: #4b5563;
+        cursor: pointer;
+      }
+      .category-pill:hover {
+        background: #e5e7eb;
+      }
+      .category-pill.active {
+        background: var(--green);
+        color: #fff;
+      }
+      .product-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(145px, 1fr));
+        gap: 10px;
+        max-height: 550px;
+        overflow-y: auto;
+        padding-right: 4px;
+      }
+      .pos-card {
+        background: #fff;
+        border: 1px solid var(--border);
+        border-radius: 8px;
+        padding: 10px;
+        cursor: pointer;
+        transition: all 0.15s;
+        display: flex;
+        flex-direction: column;
+        justify-content: space-between;
+        text-align: left;
+      }
+      .pos-card:hover {
+        border-color: var(--green);
+        transform: translateY(-2px);
+        box-shadow: 0 4px 10px rgba(0, 0, 0, 0.06);
+      }
+      .pos-card.out-of-stock {
+        opacity: 0.5;
+        cursor: not-allowed;
+        background: #fdf2f2;
+      }
+      .pos-card .p-name {
+        font-weight: 600;
+        font-size: 12.5px;
+        margin-bottom: 4px;
+        line-height: 1.2;
+        color: #111827;
+      }
+      .pos-card .p-meta {
+        font-size: 11px;
+        color: var(--muted);
+        margin-bottom: 6px;
+      }
+      .pos-card .p-price {
+        font-weight: 700;
+        color: var(--green-dark);
+        font-size: 13.5px;
+      }
+      .pos-card .p-stock {
+        font-size: 10.5px;
+        font-weight: 600;
+      }
+
+      /* POS Cart */
+      .pos-cart {
+        background: #fff;
+        border: 1px solid var(--border);
+        border-radius: 10px;
+        padding: 16px;
+        box-shadow: var(--shadow);
+        display: flex;
+        flex-direction: column;
+        height: calc(100vh - 120px);
+        position: sticky;
+        top: 20px;
+      }
+      .cart-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        border-bottom: 1px solid var(--border);
+        padding-bottom: 10px;
+        margin-bottom: 10px;
+      }
+      .cart-header h3 {
+        margin: 0;
+        font-size: 16px;
+        font-weight: 700;
+      }
+      .cart-items {
+        flex: 1;
+        overflow-y: auto;
+        margin-bottom: 12px;
+        padding-right: 4px;
+      }
+      .cart-item {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding: 8px 0;
+        border-bottom: 1px dashed #e5e7eb;
+      }
+      .cart-item-info {
+        flex: 1;
+        min-width: 0;
+        padding-right: 8px;
+      }
+      .cart-item-name {
+        font-weight: 600;
+        font-size: 13px;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+      }
+      .cart-item-unit {
+        font-size: 11px;
+        color: var(--muted);
+      }
+      .cart-qty-ctrl {
+        display: flex;
+        align-items: center;
+        gap: 4px;
+      }
+      .qty-btn {
+        width: 24px;
+        height: 24px;
+        border-radius: 4px;
+        background: #f3f4f6;
+        color: #111827;
+        font-weight: 700;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 14px;
+      }
+      .qty-btn:hover {
+        background: #e5e7eb;
+      }
+      .cart-qty-input {
+        width: 40px;
+        text-align: center;
+        padding: 2px 4px;
+        font-size: 12px;
+        font-weight: 600;
+        border: 1px solid var(--border);
+        border-radius: 4px;
+      }
+      .cart-item-total {
+        font-weight: 700;
+        font-size: 13px;
+        width: 75px;
+        text-align: right;
+      }
+      .cart-item-del {
+        color: #9ca3af;
+        cursor: pointer;
+        padding: 2px 4px;
+        font-size: 14px;
+        border-radius: 4px;
+      }
+      .cart-item-del:hover {
+        color: var(--red);
+        background: #fee2e2;
+      }
+
+      .cart-summary {
+        background: #f9fafb;
+        border-radius: 8px;
+        padding: 12px;
+        margin-bottom: 12px;
+        border: 1px solid #f3f4f6;
+      }
+      .summary-row {
+        display: flex;
+        justify-content: space-between;
+        font-size: 12.5px;
+        margin-bottom: 5px;
+        color: #4b5563;
+      }
+      .summary-row.total {
+        font-size: 17px;
+        font-weight: 800;
+        color: var(--green-dark);
+        border-top: 1px solid var(--border);
+        padding-top: 8px;
+        margin-top: 6px;
+        margin-bottom: 0;
+      }
+
+      .payment-methods {
+        display: grid;
+        grid-template-columns: repeat(2, 1fr);
+        gap: 6px;
+        margin-bottom: 12px;
+      }
+      .pay-btn {
+        padding: 7px;
+        border: 1px solid var(--border);
+        border-radius: 6px;
+        font-size: 12px;
+        font-weight: 600;
+        text-align: center;
+        background: #fff;
+        cursor: pointer;
+      }
+      .pay-btn.active {
+        border-color: var(--green);
+        background: var(--green-light);
+        color: var(--green-dark);
+      }
+
+      /* Modals */
+      .modal-bg {
+        position: fixed;
+        inset: 0;
+        background: rgba(0, 0, 0, 0.55);
+        display: none;
+        align-items: center;
+        justify-content: center;
+        z-index: 100;
+        padding: 16px;
+        overflow-y: auto;
+      }
+      .modal-bg.open {
+        display: flex;
+      }
+      .modal {
+        background: #fff;
+        border-radius: 12px;
+        max-width: 580px;
+        width: 100%;
+        box-shadow: var(--shadow-lg);
+        max-height: 92vh;
+        display: flex;
+        flex-direction: column;
+        overflow: hidden;
+      }
+      .modal-head {
+        padding: 16px 20px;
+        border-bottom: 1px solid var(--border);
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+      }
+      .modal-head h3 {
+        margin: 0;
+        font-size: 16px;
+        font-weight: 700;
+      }
+      .modal-close {
+        font-size: 20px;
+        color: var(--muted);
+        cursor: pointer;
+        line-height: 1;
+      }
+      .modal-close:hover {
+        color: #111;
+      }
+      .modal-content {
+        padding: 20px;
+        overflow-y: auto;
+        flex: 1;
+      }
+      .modal-actions {
+        padding: 14px 20px;
+        border-top: 1px solid var(--border);
+        background: #fafafa;
+        display: flex;
+        justify-content: flex-end;
+        gap: 10px;
+      }
+
+      /* Receipts */
+      .receipt-view {
+        background: #fff;
+        color: #000;
+        font-family: monospace, "Courier New", Courier, sans-serif;
+        padding: 16px;
+        border: 1px dashed #ccc;
+        max-width: 380px;
+        margin: 0 auto;
+        font-size: 12px;
+      }
+      .receipt-view.thermal {
+        max-width: 320px;
+        font-size: 11.5px;
+      }
+      .receipt-logo {
+        text-align: center;
+        font-size: 28px;
+        margin-bottom: 4px;
+      }
+      .receipt-center {
+        text-align: center;
+      }
+      .receipt-title {
+        font-size: 16px;
+        font-weight: 800;
+        text-transform: uppercase;
+        margin: 4px 0;
+      }
+      .receipt-divider {
+        border-top: 1px dashed #000;
+        margin: 8px 0;
+      }
+      .receipt-table {
+        width: 100%;
+        border-collapse: collapse;
+        min-width: 0;
+        font-size: 11.5px;
+      }
+      .receipt-table th {
+        background: none;
+        color: #000;
+        border-bottom: 1px dashed #000;
+        padding: 4px 2px;
+        font-size: 11px;
+        text-transform: none;
+      }
+      .receipt-table td {
+        border-bottom: none;
+        padding: 3px 2px;
+        font-size: 11.5px;
+      }
+
+      /* Toast */
+      .toast {
+        position: fixed;
+        bottom: 24px;
+        right: 24px;
+        background: #1f2937;
+        color: #fff;
+        padding: 12px 18px;
+        border-radius: 8px;
+        font-size: 13px;
+        font-weight: 500;
+        box-shadow: 0 10px 25px rgba(0, 0, 0, 0.25);
+        transform: translateY(80px);
+        opacity: 0;
+        transition: all 0.25s ease;
+        z-index: 999;
+        max-width: 360px;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+      }
+      .toast.show {
+        transform: translateY(0);
+        opacity: 1;
+      }
+      .toast.success {
+        background: var(--green-dark);
+        border-left: 4px solid #22c55e;
+      }
+      .toast.error {
+        background: #991b1b;
+        border-left: 4px solid #f87171;
+      }
+      .toast.warning {
+        background: #9a3412;
+        border-left: 4px solid #fb923c;
+      }
+
+      /* Import Area */
+      .drop-zone {
+        border: 2px dashed #cbd5e1;
+        border-radius: 10px;
+        padding: 30px 20px;
+        text-align: center;
+        background: #f8fafc;
+        cursor: pointer;
+        transition: all 0.2s;
+      }
+      .drop-zone:hover,
+      .drop-zone.dragover {
+        border-color: var(--green);
+        background: var(--green-light);
+      }
+      .drop-zone-icon {
+        font-size: 36px;
+        margin-bottom: 8px;
+        color: var(--green);
+      }
+
+      /* Mobile Menu */
+      .mobile-header {
+        display: none;
+        padding: 12px 16px;
+        background: var(--green);
+        color: #fff;
+        justify-content: space-between;
+        align-items: center;
+      }
+
+      @media (max-width: 960px) {
+        .pos-layout {
+          grid-template-columns: 1fr;
+          gap: 14px;
+        }
+        .pos-cart {
+          height: auto;
+          position: static;
+          max-height: 600px;
+        }
+      }
+      @media (max-width: 768px) {
+        .app {
+          flex-direction: column;
+        }
+        .sidebar {
+          position: fixed;
+          left: -280px;
+          top: 0;
+          height: 100vh;
+          width: 260px;
+          transition: left 0.25s ease;
+          box-shadow: 2px 0 12px rgba(0, 0, 0, 0.15);
+        }
+        .sidebar.open {
+          left: 0;
+        }
+        .mobile-header {
+          display: flex;
+        }
+        .main {
+          padding: 16px;
+        }
+        .cards {
+          grid-template-columns: 1fr 1fr;
+        }
+      }
+
+      /* Print Optimization */
+      @media print {
+        body * {
+          visibility: hidden;
+        }
+        .modal-bg,
+        .modal-bg * {
+          visibility: visible;
+        }
+        .modal-bg {
+          position: absolute;
+          left: 0;
+          top: 0;
+          width: 100%;
+          background: #fff !important;
+          padding: 0 !important;
+          display: block !important;
+        }
+        .modal {
+          box-shadow: none !important;
+          border: none !important;
+          max-width: 100% !important;
+          max-height: none !important;
+          width: 100% !important;
+        }
+        .modal-head,
+        .modal-actions {
+          display: none !important;
+        }
+        .receipt-view {
+          border: none !important;
+          width: 100% !important;
+          max-width: 100% !important;
+          padding: 0 !important;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <div class="mobile-header">
+      <div style="display: flex; align-items: center; gap: 8px">
+        <span style="font-size: 20px">🛒</span>
+        <span style="font-weight: 700; font-size: 16px" id="mobileStoreName">Prime Mart</span>
+      </div>
+      <button onclick="toggleSidebar()" style="color: #fff; font-size: 22px; padding: 4px">
+        ☰
+      </button>
+    </div>
+
+    <div class="app">
+      <!-- SIDEBAR NAVIGATION -->
+      <aside class="sidebar" id="sidebar">
+        <div class="brand">
+          <div class="brand-logo">🛒</div>
+          <div class="brand-info">
+            <h1 id="sideStoreName">Prime Mart</h1>
+            <small id="sideStoreLoc">Kigali, Rwanda</small>
+          </div>
+        </div>
+
+        <nav class="nav">
+          <div class="nav-group-title">Main</div>
+          <button data-tab="dashboard" class="active">
+            <svg
+              class="nav-icon"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke-width="2"
+              stroke-linecap="round"
+              stroke-linejoin="round"
+            >
+              <rect x="3" y="3" width="7" height="7" />
+              <rect x="14" y="3" width="7" height="7" />
+              <rect x="14" y="14" width="7" height="7" />
+              <rect x="3" y="14" width="7" height="7" />
+            </svg>
+            Dashboard
+          </button>
+          <button data-tab="pos">
+            <svg
+              class="nav-icon"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke-width="2"
+              stroke-linecap="round"
+              stroke-linejoin="round"
+            >
+              <circle cx="9" cy="21" r="1" />
+              <circle cx="20" cy="21" r="1" />
+              <path d="M1 1h4l2.7 13.4a2 2 0 0 0 2 1.6h9.7a2 2 0 0 0 2-1.6L23 6H6" />
+            </svg>
+            Point of Sale (POS)
+          </button>
+
+          <div class="nav-group-title">Inventory & Stock</div>
+          <button data-tab="inventory">
+            <svg
+              class="nav-icon"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke-width="2"
+              stroke-linecap="round"
+              stroke-linejoin="round"
+            >
+              <path
+                d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"
+              />
+              <polyline points="3.27 6.96 12 12.01 20.73 6.96" />
+              <line x1="12" y1="22.08" x2="12" y2="12" />
+            </svg>
+            Products List
+            <span class="nav-badge" id="lowStockBadge" style="display: none">0</span>
+          </button>
+          <button data-tab="addstock">
+            <svg
+              class="nav-icon"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke-width="2"
+              stroke-linecap="round"
+              stroke-linejoin="round"
+            >
+              <path d="M12 5v14M5 12h14" />
+            </svg>
+            Receive Stock
+          </button>
+          <button data-tab="stockhistory">
+            <svg
+              class="nav-icon"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke-width="2"
+              stroke-linecap="round"
+              stroke-linejoin="round"
+            >
+              <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
+              <path d="M14 2v6h6M16 13H8M16 17H8M10 9H8" />
+            </svg>
+            Delivery Notes
+          </button>
+
+          <div class="nav-group-title">Records & Data</div>
+          <button data-tab="saleshistory">
+            <svg
+              class="nav-icon"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke-width="2"
+              stroke-linecap="round"
+              stroke-linejoin="round"
+            >
+              <circle cx="12" cy="12" r="10" />
+              <polyline points="12 6 12 12 16 14" />
+            </svg>
+            Sales History
+          </button>
+          <button data-tab="importexport">
+            <svg
+              class="nav-icon"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke-width="2"
+              stroke-linecap="round"
+              stroke-linejoin="round"
+            >
+              <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+              <polyline points="7 10 12 15 17 10" />
+              <line x1="12" y1="15" x2="12" y2="3" />
+            </svg>
+            Import / Export Excel
+          </button>
+          <button data-tab="settings">
+            <svg
+              class="nav-icon"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke-width="2"
+              stroke-linecap="round"
+              stroke-linejoin="round"
+            >
+              <circle cx="12" cy="12" r="3" />
+              <path
+                d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"
+              />
+            </svg>
+            Store Settings
+          </button>
+        </nav>
+
+        <div class="sidebar-footer">
+          <div>💾 <strong>Offline-ready System</strong></div>
+          <div style="margin-top: 2px">All data safely stored in browser</div>
+        </div>
+      </aside>
+
+      <!-- MAIN CONTENT AREA -->
+      <main class="main">
+        <!-- 1. DASHBOARD -->
+        <section class="page" id="page-dashboard">
+          <div class="header-bar">
+            <div>
+              <h1 class="page-title">Store Dashboard</h1>
+              <p class="page-sub">
+                Real-time overview of retail stock, daily sales, and profit performance.
+              </p>
+            </div>
+            <div style="display: flex; gap: 8px">
+              <button class="btn btn-primary" onclick="switchTab('pos')">
+                🛒 Open POS Register
+              </button>
+              <button class="btn btn-outline" onclick="switchTab('importexport')">
+                📥 Import Excel/CSV
+              </button>
+            </div>
+          </div>
+
+          <!-- Low Stock Notification Banner if any -->
+          <div
+            id="dashboardAlertBanner"
+            style="
+              display: none;
+              margin-bottom: 16px;
+              padding: 12px 16px;
+              background: #fef2f2;
+              border: 1px solid #fecaca;
+              border-radius: 8px;
+              color: #991b1b;
+              display: flex;
+              align-items: center;
+              justify-content: space-between;
+            "
+          >
+            <div style="display: flex; align-items: center; gap: 10px">
+              <span style="font-size: 18px">⚠️</span>
+              <div>
+                <strong id="dashAlertText">Low Stock Alert</strong>
+                <div style="font-size: 12px; opacity: 0.85">
+                  Some products are out of stock or below re-order level.
+                </div>
+              </div>
+            </div>
+            <button
+              class="btn btn-small btn-danger"
+              onclick="
+                switchTab('inventory');
+                filterInventoryStatus('low');
+              "
+            >
+              View Low Items
+            </button>
+          </div>
+
+          <div class="cards" id="dashboardMetrics"></div>
+
+          <!-- Quick Actions & Today's Summary -->
+          <div
+            style="
+              display: grid;
+              grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+              gap: 16px;
+              margin-bottom: 20px;
+            "
+          >
+            <div class="panel" style="margin-bottom: 0">
+              <div class="panel-header">
+                <h2>Today's Performance</h2>
+                <span class="badge badge-green" id="todayDateLabel">Today</span>
+              </div>
+              <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px">
+                <div
+                  style="
+                    background: #f9fafb;
+                    padding: 12px;
+                    border-radius: 8px;
+                    border: 1px solid #e5e7eb;
+                  "
+                >
+                  <div
+                    style="
+                      font-size: 11px;
+                      color: var(--muted);
+                      text-transform: uppercase;
+                      font-weight: 600;
+                    "
+                  >
+                    Today's Sales
+                  </div>
+                  <div
+                    style="
+                      font-size: 18px;
+                      font-weight: 700;
+                      color: var(--green-dark);
+                      margin-top: 4px;
+                    "
+                    id="todaySalesVal"
+                  >
+                    0 RWF
+                  </div>
+                  <div
+                    style="font-size: 11px; color: var(--muted); margin-top: 2px"
+                    id="todayOrdersCount"
+                  >
+                    0 transactions
+                  </div>
+                </div>
+                <div
+                  style="
+                    background: #f9fafb;
+                    padding: 12px;
+                    border-radius: 8px;
+                    border: 1px solid #e5e7eb;
+                  "
+                >
+                  <div
+                    style="
+                      font-size: 11px;
+                      color: var(--muted);
+                      text-transform: uppercase;
+                      font-weight: 600;
+                    "
+                  >
+                    Today's Profit
+                  </div>
+                  <div
+                    style="font-size: 18px; font-weight: 700; color: #16a34a; margin-top: 4px"
+                    id="todayProfitVal"
+                  >
+                    0 RWF
+                  </div>
+                  <div
+                    style="font-size: 11px; color: var(--muted); margin-top: 2px"
+                    id="todayMarginVal"
+                  >
+                    0% margin
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <div class="panel" style="margin-bottom: 0">
+              <div class="panel-header">
+                <h2>Quick Store Actions</h2>
+              </div>
+              <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px">
+                <button
+                  class="btn btn-outline-primary"
+                  style="padding: 10px"
+                  onclick="switchTab('pos')"
+                >
+                  🛒 New Customer Sale
+                </button>
+                <button
+                  class="btn btn-outline"
+                  style="padding: 10px"
+                  onclick="switchTab('addstock')"
+                >
+                  ➕ Receive Stock
+                </button>
+                <button
+                  class="btn btn-outline"
+                  style="padding: 10px"
+                  onclick="openAddProductModal()"
+                >
+                  ✨ Add New Item
+                </button>
+                <button
+                  class="btn btn-outline"
+                  style="padding: 10px"
+                  onclick="exportInventoryExcel()"
+                >
+                  📊 Export Inventory
+                </button>
+              </div>
+            </div>
+          </div>
+
+          <!-- Top Inventory Overview -->
+          <div class="panel">
+            <div class="panel-header">
+              <h2>Inventory Quick Table</h2>
+              <div style="display: flex; gap: 8px">
+                <input
+                  id="dashSearch"
+                  placeholder="Search product or category…"
+                  style="max-width: 240px; padding: 6px 10px; font-size: 12.5px"
+                  oninput="renderDashboardTable()"
+                />
+                <button class="btn btn-outline btn-small" onclick="switchTab('inventory')">
+                  View All
+                </button>
+              </div>
+            </div>
+            <div class="table-wrap">
+              <table id="dashTable">
+                <thead>
+                  <tr>
+                    <th>Product Name</th>
+                    <th>Category</th>
+                    <th class="text-right">Stock</th>
+                    <th class="text-right">Cost Price</th>
+                    <th class="text-right">Selling Price</th>
+                    <th class="text-right">Est. Profit</th>
+                    <th class="text-center">Status</th>
+                  </tr>
+                </thead>
+                <tbody></tbody>
+              </table>
+            </div>
+          </div>
+        </section>
+
+        <!-- 2. POINT OF SALE (POS) -->
+        <section class="page" id="page-pos" hidden>
+          <div class="header-bar" style="margin-bottom: 12px">
+            <div>
+              <h1 class="page-title">Point of Sale (POS)</h1>
+              <p class="page-sub">
+                Fast barcode/search checkout for customer orders with multi-item receipt printing.
+              </p>
+            </div>
+          </div>
+
+          <div class="pos-layout">
+            <!-- Catalog & Search -->
+            <div class="pos-catalog">
+              <div style="display: flex; gap: 8px; margin-bottom: 10px">
+                <div style="position: relative; flex: 1">
+                  <input
+                    id="posSearch"
+                    placeholder="🔍 Scan barcode or search product name / category… (Press Enter to add)"
+                    autocomplete="off"
+                    oninput="renderPosGrid()"
+                    onkeydown="handlePosSearchKey(event)"
+                  />
+                </div>
+                <button
+                  class="btn btn-outline"
+                  onclick="
+                    document.getElementById('posSearch').value = '';
+                    renderPosGrid();
+                  "
+                  title="Clear"
+                >
+                  ✕
+                </button>
+              </div>
+
+              <div class="category-pills" id="posCategoryPills"></div>
+
+              <div class="product-grid" id="posProductGrid"></div>
+            </div>
+
+            <!-- Order Cart / Register -->
+            <div class="pos-cart">
+              <div class="cart-header">
+                <h3>Current Order</h3>
+                <button
+                  class="btn btn-outline btn-small"
+                  onclick="clearPosCart()"
+                  style="color: var(--red); border-color: #fecaca"
+                >
+                  Clear Cart
+                </button>
+              </div>
+
+              <div class="cart-items" id="posCartItems">
+                <div style="text-align: center; color: var(--muted); padding: 40px 10px">
+                  <div style="font-size: 32px; margin-bottom: 6px">🛒</div>
+                  <div style="font-weight: 600">Cart is empty</div>
+                  <div style="font-size: 12px; margin-top: 2px">
+                    Click products or scan barcodes to add items
+                  </div>
+                </div>
+              </div>
+
+              <div class="cart-summary">
+                <div class="summary-row">
+                  <span>Subtotal:</span>
+                  <span id="posSubtotal" style="font-weight: 600">0 RWF</span>
+                </div>
+                <div class="summary-row" style="align-items: center">
+                  <span>Discount (RWF):</span>
+                  <input
+                    type="number"
+                    id="posDiscount"
+                    min="0"
+                    value="0"
+                    style="width: 90px; padding: 3px 6px; text-align: right; font-size: 12px"
+                    oninput="updatePosCartTotals()"
+                  />
+                </div>
+                <div class="summary-row total">
+                  <span>Grand Total:</span>
+                  <span id="posGrandTotal">0 RWF</span>
+                </div>
+              </div>
+
+              <!-- Payment Options -->
+              <div style="margin-bottom: 8px">
+                <label style="margin-bottom: 4px">Payment Method</label>
+                <div class="payment-methods">
+                  <button
+                    class="pay-btn active"
+                    data-pay="Cash"
+                    onclick="setPosPaymentMethod('Cash')"
+                  >
+                    💵 Cash
+                  </button>
+                  <button
+                    class="pay-btn"
+                    data-pay="Mobile Money"
+                    onclick="setPosPaymentMethod('Mobile Money')"
+                  >
+                    📱 MoMo
+                  </button>
+                  <button class="pay-btn" data-pay="Card" onclick="setPosPaymentMethod('Card')">
+                    💳 Card
+                  </button>
+                  <button class="pay-btn" data-pay="Credit" onclick="setPosPaymentMethod('Credit')">
+                    📝 Credit
+                  </button>
+                </div>
+              </div>
+
+              <!-- Cash Tendered & Change -->
+              <div
+                id="cashCalcBox"
+                style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-bottom: 10px"
+              >
+                <div>
+                  <label style="margin-bottom: 2px">Cash Received</label>
+                  <input
+                    type="number"
+                    id="posCashGiven"
+                    placeholder="0"
+                    min="0"
+                    oninput="calcChangeDue()"
+                  />
+                </div>
+                <div>
+                  <label style="margin-bottom: 2px">Change Due</label>
+                  <input
+                    id="posChangeDue"
+                    disabled
+                    style="background: #f3f4f6; font-weight: 700; color: var(--green-dark)"
+                    value="0 RWF"
+                  />
+                </div>
+              </div>
+
+              <!-- Optional Customer Details -->
+              <details style="font-size: 12px; margin-bottom: 10px; color: var(--muted)">
+                <summary style="cursor: pointer; font-weight: 600">
+                  Customer Info / Notes (Optional)
+                </summary>
+                <div
+                  style="display: grid; grid-template-columns: 1fr 1fr; gap: 6px; margin-top: 6px"
+                >
+                  <input
+                    id="posCustName"
+                    placeholder="Customer Name"
+                    style="font-size: 12px; padding: 5px"
+                  />
+                  <input
+                    id="posCustPhone"
+                    placeholder="Customer Phone"
+                    style="font-size: 12px; padding: 5px"
+                  />
+                  <input
+                    id="posOrderNotes"
+                    placeholder="Order notes..."
+                    style="grid-column: 1/-1; font-size: 12px; padding: 5px"
+                  />
+                </div>
+              </details>
+
+              <button
+                class="btn btn-primary btn-large"
+                style="width: 100%"
+                id="btnCharge"
+                onclick="checkoutPosOrder()"
+              >
+                Complete Sale & Print Receipt 🧾
+              </button>
+            </div>
+          </div>
+        </section>
+
+        <!-- 3. INVENTORY LIST -->
+        <section class="page" id="page-inventory" hidden>
+          <div class="header-bar">
+            <div>
+              <h1 class="page-title">Product Inventory</h1>
+              <p class="page-sub">
+                Comprehensive catalog with live stock tracking, cost analysis, and stock alerts.
+              </p>
+            </div>
+            <div style="display: flex; gap: 8px; flex-wrap: wrap">
+              <button class="btn btn-primary" onclick="openAddProductModal()">+ Add Product</button>
+              <button class="btn btn-outline" onclick="switchTab('importexport')">
+                📥 Import File
+              </button>
+              <button class="btn btn-outline" onclick="exportInventoryExcel()">
+                ⬇ Export Excel
+              </button>
+            </div>
+          </div>
+
+          <div class="panel">
+            <div class="toolbar">
+              <div class="grow">
+                <label>Search Products</label>
+                <input
+                  id="invSearchInput"
+                  placeholder="Search by name, SKU, or category…"
+                  oninput="renderInventoryPage()"
+                />
+              </div>
+              <div style="min-width: 140px">
+                <label>Category</label>
+                <select id="invCatFilter" onchange="renderInventoryPage()">
+                  <option value="">All Categories</option>
+                </select>
+              </div>
+              <div style="min-width: 140px">
+                <label>Stock Status</label>
+                <select id="invStatusFilter" onchange="renderInventoryPage()">
+                  <option value="">All Statuses</option>
+                  <option value="in">In Stock (>5)</option>
+                  <option value="low">Low Stock (1-5)</option>
+                  <option value="out">Out of Stock (0)</option>
+                </select>
+              </div>
+              <div style="align-self: flex-end">
+                <button class="btn btn-outline" onclick="resetInvFilters()">Clear Filters</button>
+              </div>
+            </div>
+
+            <div class="table-wrap">
+              <table id="fullInventoryTable">
+                <thead>
+                  <tr>
+                    <th>Product Name</th>
+                    <th>Category</th>
+                    <th>Unit</th>
+                    <th class="text-right">In Stock</th>
+                    <th class="text-right">Cost (RWF)</th>
+                    <th class="text-right">Selling (RWF)</th>
+                    <th class="text-right">Margin (RWF)</th>
+                    <th class="text-right">Stock Value</th>
+                    <th class="text-center">Status</th>
+                    <th class="text-right">Actions</th>
+                  </tr>
+                </thead>
+                <tbody></tbody>
+              </table>
+            </div>
+          </div>
+        </section>
+
+        <!-- 4. RECEIVE STOCK (GOODS RECEIVED) -->
+        <section class="page" id="page-addstock" hidden>
+          <div class="header-bar">
+            <div>
+              <h1 class="page-title">Receive Stock (Goods Inward)</h1>
+              <p class="page-sub">
+                Restock existing products or record new supplier shipments with delivery notes.
+              </p>
+            </div>
+          </div>
+
+          <div class="panel">
+            <form id="stockInwardForm" onsubmit="handleStockInward(event)">
+              <div class="form-grid">
+                <div class="full">
+                  <label>Product *</label>
+                  <input
+                    name="name"
+                    id="stockProdName"
+                    list="stockProductDatalist"
+                    required
+                    placeholder="Type product name or select existing to restock"
+                    oninput="autoFillStockFields()"
+                    autocomplete="off"
+                  />
+                  <datalist id="stockProductDatalist"></datalist>
+                  <div class="help-text">
+                    Select an existing product to restock it, or type a new product name to register
+                    it into inventory.
+                  </div>
+                </div>
+
+                <div>
+                  <label>Category *</label>
+                  <select name="category" id="stockCategory" required>
+                    <option value="General">General</option>
+                    <option value="Food">Food</option>
+                    <option value="Beverages">Beverages</option>
+                    <option value="Personal Care">Personal Care</option>
+                    <option value="Household">Household</option>
+                    <option value="Bakery">Bakery</option>
+                    <option value="Dairy">Dairy</option>
+                    <option value="Snacks">Snacks</option>
+                    <option value="Other">Other</option>
+                  </select>
+                </div>
+
+                <div>
+                  <label>Unit of Measure *</label>
+                  <select name="unit" id="stockUnit" required>
+                    <option value="pcs">pcs (Pieces)</option>
+                    <option value="carton">carton</option>
+                    <option value="pack">pack</option>
+                    <option value="box">box</option>
+                    <option value="kg">kg (Kilogram)</option>
+                    <option value="litre">litre</option>
+                    <option value="jerrycan">jerrycan</option>
+                    <option value="crate">crate</option>
+                    <option value="jar">jar</option>
+                    <option value="bottle">bottle</option>
+                    <option value="can">can</option>
+                  </select>
+                </div>
+
+                <div>
+                  <label>Quantity Received *</label>
+                  <input
+                    type="number"
+                    step="any"
+                    min="0.01"
+                    name="qty"
+                    id="stockQty"
+                    required
+                    placeholder="0"
+                    oninput="calcStockInwardTotal()"
+                  />
+                </div>
+
+                <div>
+                  <label>Purchase / Cost Price per Unit (RWF) *</label>
+                  <input
+                    type="number"
+                    step="any"
+                    min="0"
+                    name="buy"
+                    id="stockBuyPrice"
+                    required
+                    placeholder="0"
+                    oninput="calcStockInwardTotal()"
+                  />
+                </div>
+
+                <div>
+                  <label>Total Inward Cost (RWF)</label>
+                  <input
+                    id="stockTotalCost"
+                    disabled
+                    style="background: #f3f4f6; font-weight: 700; color: var(--green-dark)"
+                    value="0 RWF"
+                  />
+                </div>
+
+                <div>
+                  <label>Selling Price per Unit (RWF) *</label>
+                  <input
+                    type="number"
+                    step="any"
+                    min="0"
+                    name="sell"
+                    id="stockSellPrice"
+                    required
+                    placeholder="0"
+                  />
+                </div>
+
+                <div>
+                  <label>Supplier Name</label>
+                  <input name="supplier" id="stockSupplier" value="Local Supplier" />
+                </div>
+
+                <div>
+                  <label>Date Received *</label>
+                  <input type="date" name="date" id="stockDate" required />
+                </div>
+
+                <div>
+                  <label>Barcode / SKU (Optional)</label>
+                  <input name="sku" id="stockSku" placeholder="Scan or enter barcode" />
+                </div>
+
+                <div class="full">
+                  <label>Delivery Notes / Invoice Reference (Optional)</label>
+                  <textarea
+                    name="notes"
+                    id="stockNotes"
+                    rows="2"
+                    placeholder="e.g. Invoice #1234 from supplier, shipment batch info..."
+                  ></textarea>
+                </div>
+              </div>
+
+              <div style="margin-top: 20px; display: flex; gap: 10px">
+                <button class="btn btn-primary" type="submit">
+                  📦 Add Stock & Generate Delivery Note
+                </button>
+                <button
+                  class="btn btn-outline"
+                  type="reset"
+                  onclick="setTimeout(initStockFormDates, 50)"
+                >
+                  Reset Form
+                </button>
+              </div>
+            </form>
+          </div>
+        </section>
+
+        <!-- 5. DELIVERY NOTES (STOCK HISTORY) -->
+        <section class="page" id="page-stockhistory" hidden>
+          <div class="header-bar">
+            <div>
+              <h1 class="page-title">Stock Inward & Delivery Notes</h1>
+              <p class="page-sub">
+                Historical log of all stock receipts, purchases, and supplier delivery notes.
+              </p>
+            </div>
+            <div>
+              <button class="btn btn-outline" onclick="exportStockHistoryExcel()">
+                ⬇ Export to Excel
+              </button>
+            </div>
+          </div>
+
+          <div class="panel">
+            <div class="toolbar">
+              <div class="grow">
+                <label>Filter by Supplier or Product</label>
+                <input
+                  id="stockHistSearch"
+                  placeholder="Search supplier or item name…"
+                  oninput="renderStockHistoryPage()"
+                />
+              </div>
+            </div>
+
+            <div class="table-wrap">
+              <table id="stockHistoryTable">
+                <thead>
+                  <tr>
+                    <th>DN #</th>
+                    <th>Date</th>
+                    <th>Supplier</th>
+                    <th>Product</th>
+                    <th class="text-right">Qty</th>
+                    <th>Unit</th>
+                    <th class="text-right">Cost/Unit</th>
+                    <th class="text-right">Total Cost</th>
+                    <th class="text-right">Actions</th>
+                  </tr>
+                </thead>
+                <tbody></tbody>
+              </table>
+            </div>
+          </div>
+        </section>
+
+        <!-- 6. SALES HISTORY -->
+        <section class="page" id="page-saleshistory" hidden>
+          <div class="header-bar">
+            <div>
+              <h1 class="page-title">Sales & Transaction History</h1>
+              <p class="page-sub">
+                Browse customer sales receipts, track daily totals, and reprint or refund receipts.
+              </p>
+            </div>
+            <div>
+              <button class="btn btn-outline" onclick="exportSalesHistoryExcel()">
+                ⬇ Export Sales to Excel
+              </button>
+            </div>
+          </div>
+
+          <div class="panel">
+            <div class="toolbar">
+              <div>
+                <label>From Date</label>
+                <input type="date" id="salesHistFrom" onchange="renderSalesHistoryPage()" />
+              </div>
+              <div>
+                <label>To Date</label>
+                <input type="date" id="salesHistTo" onchange="renderSalesHistoryPage()" />
+              </div>
+              <div class="grow">
+                <label>Search Order / Customer / Product</label>
+                <input
+                  id="salesHistQuery"
+                  placeholder="Search receipt #, customer name, product…"
+                  oninput="renderSalesHistoryPage()"
+                />
+              </div>
+              <div style="align-self: flex-end">
+                <button class="btn btn-outline" onclick="clearSalesHistFilters()">Clear</button>
+              </div>
+            </div>
+
+            <div class="table-wrap">
+              <table id="salesHistoryTable">
+                <thead>
+                  <tr>
+                    <th>Receipt #</th>
+                    <th>Date & Time</th>
+                    <th>Customer</th>
+                    <th>Items Summary</th>
+                    <th class="text-right">Total Amount</th>
+                    <th>Payment</th>
+                    <th class="text-center">Status</th>
+                    <th class="text-right">Actions</th>
+                  </tr>
+                </thead>
+                <tbody></tbody>
+              </table>
+            </div>
+          </div>
+        </section>
+
+        <!-- 7. IMPORT / EXPORT -->
+        <section class="page" id="page-importexport" hidden>
+          <div class="header-bar">
+            <div>
+              <h1 class="page-title">Import & Export Data</h1>
+              <p class="page-sub">
+                Import your store's real Excel / CSV product catalog, download templates, and backup
+                data.
+              </p>
+            </div>
+          </div>
+
+          <!-- Import Box -->
+          <div class="panel">
+            <div class="panel-header">
+              <h2>📥 Import Products from Excel / CSV</h2>
+              <div style="display: flex; gap: 8px">
+                <button
+                  class="btn btn-outline-primary btn-small"
+                  onclick="downloadSampleCsvTemplate()"
+                >
+                  📄 Download CSV Template
+                </button>
+                <button class="btn btn-outline btn-small" onclick="downloadSampleExcelTemplate()">
+                  📊 Download Excel Template
+                </button>
+              </div>
+            </div>
+
+            <p style="color: var(--muted); font-size: 13px; margin-top: 0">
+              Upload your product spreadsheet. The system automatically detects columns:
+              <strong
+                >Product Name, Category, Unit, Stock / Qty, Purchase Price (Cost), Selling Price,
+                Supplier, Barcode</strong
+              >.
+            </p>
+
+            <div
+              class="drop-zone"
+              id="dropZone"
+              onclick="document.getElementById('fileInput').click()"
+            >
+              <div class="drop-zone-icon">📁</div>
+              <div style="font-size: 15px; font-weight: 600">
+                Click to Select Excel / CSV File, or Drag & Drop Here
+              </div>
+              <div style="font-size: 12px; color: var(--muted); margin-top: 4px">
+                Supports .xlsx, .xls, and .csv files (Works 100% Offline)
+              </div>
+              <input
+                type="file"
+                id="fileInput"
+                accept=".csv, .xlsx, .xls, text/csv, application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+                style="display: none"
+                onchange="handleFileSelected(event)"
+              />
+            </div>
+
+            <!-- Import Options -->
+            <div
+              style="
+                margin-top: 16px;
+                display: flex;
+                gap: 16px;
+                align-items: center;
+                flex-wrap: wrap;
+              "
+            >
+              <label
+                style="
+                  display: flex;
+                  align-items: center;
+                  gap: 6px;
+                  cursor: pointer;
+                  font-size: 13px;
+                  font-weight: 500;
+                "
+              >
+                <input type="radio" name="importMode" value="merge" checked style="width: auto" />
+                <strong>Add / Update existing catalog</strong> (Recommended: merges new products or
+                adds stock)
+              </label>
+              <label
+                style="
+                  display: flex;
+                  align-items: center;
+                  gap: 6px;
+                  cursor: pointer;
+                  font-size: 13px;
+                  font-weight: 500;
+                  color: var(--red);
+                "
+              >
+                <input type="radio" name="importMode" value="replace" style="width: auto" />
+                <strong>Replace all products</strong> (Wipes previous items and loads fresh file)
+              </label>
+            </div>
+          </div>
+
+          <!-- Export Box -->
+          <div class="panel">
+            <h2>📤 Export Reports</h2>
+            <p style="color: var(--muted); font-size: 13px; margin-top: 0">
+              Download spreadsheets of your inventory, sales, and business summaries.
+            </p>
+            <div
+              style="
+                display: grid;
+                grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+                gap: 12px;
+                margin-top: 14px;
+              "
+            >
+              <div style="border: 1px solid var(--border); border-radius: 8px; padding: 14px">
+                <div style="font-weight: 700; margin-bottom: 4px">Inventory Catalog</div>
+                <div style="font-size: 12px; color: var(--muted); margin-bottom: 10px">
+                  Current stock, cost prices, selling prices, and margins.
+                </div>
+                <div style="display: flex; gap: 6px">
+                  <button class="btn btn-outline btn-small" onclick="exportInventoryExcel()">
+                    Excel (.xlsx)
+                  </button>
+                  <button class="btn btn-outline btn-small" onclick="exportInventoryCsv()">
+                    CSV (.csv)
+                  </button>
+                </div>
+              </div>
+
+              <div style="border: 1px solid var(--border); border-radius: 8px; padding: 14px">
+                <div style="font-weight: 700; margin-bottom: 4px">Sales Transactions</div>
+                <div style="font-size: 12px; color: var(--muted); margin-bottom: 10px">
+                  Complete history of customer sales and revenue.
+                </div>
+                <div style="display: flex; gap: 6px">
+                  <button class="btn btn-outline btn-small" onclick="exportSalesHistoryExcel()">
+                    Excel (.xlsx)
+                  </button>
+                  <button class="btn btn-outline btn-small" onclick="exportSalesHistoryCsv()">
+                    CSV (.csv)
+                  </button>
+                </div>
+              </div>
+
+              <div style="border: 1px solid var(--border); border-radius: 8px; padding: 14px">
+                <div style="font-weight: 700; margin-bottom: 4px">Stock Delivery History</div>
+                <div style="font-size: 12px; color: var(--muted); margin-bottom: 10px">
+                  Purchases, received stock, and supplier delivery notes.
+                </div>
+                <div style="display: flex; gap: 6px">
+                  <button class="btn btn-outline btn-small" onclick="exportStockHistoryExcel()">
+                    Excel (.xlsx)
+                  </button>
+                  <button class="btn btn-outline btn-small" onclick="exportStockHistoryCsv()">
+                    CSV (.csv)
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Backup & Restore Box -->
+          <div class="panel">
+            <h2>💾 System Backup & Restore</h2>
+            <p style="color: var(--muted); font-size: 13px; margin-top: 0">
+              Save a complete snapshot of all store settings, inventory, and sales history to a JSON
+              file.
+            </p>
+            <div style="display: flex; gap: 12px; flex-wrap: wrap">
+              <button class="btn btn-primary" onclick="downloadBackupFile()">
+                💾 Download Complete Backup
+              </button>
+              <label class="btn btn-outline" style="cursor: pointer">
+                📂 Restore from Backup File
+                <input
+                  type="file"
+                  accept=".json"
+                  style="display: none"
+                  onchange="restoreBackupFile(event)"
+                />
+              </label>
+            </div>
+          </div>
+        </section>
+
+        <!-- 8. STORE SETTINGS -->
+        <section class="page" id="page-settings" hidden>
+          <div class="header-bar">
+            <div>
+              <h1 class="page-title">Store Settings</h1>
+              <p class="page-sub">
+                Customize store name, contact info, currency format, receipt styles, and database
+                resets.
+              </p>
+            </div>
+          </div>
+
+          <div class="panel">
+            <form id="settingsForm" onsubmit="saveStoreSettings(event)">
+              <div class="form-grid">
+                <div>
+                  <label>Store Name *</label>
+                  <input
+                    name="name"
+                    id="settingStoreName"
+                    required
+                    value="Prime Mart Supermarket"
+                  />
+                </div>
+                <div>
+                  <label>Location / Address *</label>
+                  <input name="address" id="settingAddress" required value="Kigali, Rwanda" />
+                </div>
+                <div>
+                  <label>Phone Number *</label>
+                  <input name="phone" id="settingPhone" required value="+250 788 000 000" />
+                </div>
+                <div>
+                  <label>Tax / TIN ID (Optional)</label>
+                  <input name="tin" id="settingTin" placeholder="e.g. 100234567" />
+                </div>
+                <div>
+                  <label>Currency Code / Symbol *</label>
+                  <input name="currency" id="settingCurrency" required value="RWF" />
+                </div>
+                <div>
+                  <label>Low Stock Warning Threshold (units) *</label>
+                  <input
+                    type="number"
+                    name="lowStockThreshold"
+                    id="settingLowStock"
+                    required
+                    value="5"
+                    min="1"
+                  />
+                </div>
+                <div>
+                  <label>Receipt Paper Format</label>
+                  <select name="receiptPaperSize" id="settingReceiptFormat">
+                    <option value="thermal">Thermal POS Slip (80mm / 58mm)</option>
+                    <option value="standard">Standard A4 / Letter Size</option>
+                  </select>
+                </div>
+                <div class="full">
+                  <label>Receipt Footer Message</label>
+                  <input
+                    name="receiptFooter"
+                    id="settingReceiptFooter"
+                    value="Thank you for shopping at Prime Mart Supermarket! Welcome again."
+                  />
+                </div>
+              </div>
+              <div style="margin-top: 20px">
+                <button class="btn btn-primary" type="submit">💾 Save Store Settings</button>
+              </div>
+            </form>
+          </div>
+
+          <!-- Danger Zone / Data Management -->
+          <div class="panel" style="border-color: #fecaca; background: #fffaf9">
+            <h2 style="color: var(--red)">⚠️ Data Management & Danger Zone</h2>
+            <p style="color: var(--muted); font-size: 13px; margin-top: 0">
+              Clear specific data or reset the store to a clean empty slate.
+            </p>
+
+            <div style="display: flex; gap: 10px; flex-wrap: wrap; margin-top: 14px">
+              <button class="btn btn-danger-outline" onclick="clearAllProducts()">
+                🗑️ Clear All Products (Empty Store)
+              </button>
+              <button class="btn btn-danger-outline" onclick="clearSalesHistory()">
+                🗑️ Clear Sales History Only
+              </button>
+              <button class="btn btn-outline" onclick="loadSampleRwandaData()">
+                🔄 Load Sample Rwanda Products
+              </button>
+              <button class="btn btn-danger" onclick="factoryResetDatabase()">
+                ⚠️ Factory Reset Everything
+              </button>
+            </div>
+          </div>
+        </section>
+      </main>
+    </div>
+
+    <!-- ================= MODALS ================= -->
+
+    <!-- Main Generic Modal (Receipts, Delivery Notes, Dialogs) -->
+    <div class="modal-bg" id="mainModal">
+      <div class="modal">
+        <div class="modal-head">
+          <h3 id="modalTitle">Receipt</h3>
+          <span class="modal-close" onclick="closeMainModal()">✕</span>
+        </div>
+        <div class="modal-content" id="modalBody"></div>
+        <div class="modal-actions" id="modalActions">
+          <button class="btn btn-outline" onclick="closeMainModal()">Close</button>
+          <button class="btn btn-primary" onclick="window.print()">🖨 Print</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Product Add / Edit Modal -->
+    <div class="modal-bg" id="productModal">
+      <div class="modal" style="max-width: 540px">
+        <div class="modal-head">
+          <h3 id="prodModalTitle">Add New Product</h3>
+          <span class="modal-close" onclick="closeProductModal()">✕</span>
+        </div>
+        <div class="modal-content">
+          <form id="productEditForm" onsubmit="saveProductForm(event)">
+            <input type="hidden" name="id" id="peId" />
+            <div class="form-grid">
+              <div class="full">
+                <label>Product Name *</label>
+                <input name="name" id="peName" required placeholder="e.g. Inyange Milk 1L" />
+              </div>
+              <div>
+                <label>Category *</label>
+                <select name="category" id="peCategory" required>
+                  <option value="General">General</option>
+                  <option value="Food">Food</option>
+                  <option value="Beverages">Beverages</option>
+                  <option value="Personal Care">Personal Care</option>
+                  <option value="Household">Household</option>
+                  <option value="Bakery">Bakery</option>
+                  <option value="Dairy">Dairy</option>
+                  <option value="Snacks">Snacks</option>
+                  <option value="Other">Other</option>
+                </select>
+              </div>
+              <div>
+                <label>Unit *</label>
+                <select name="unit" id="peUnit" required>
+                  <option value="pcs">pcs</option>
+                  <option value="carton">carton</option>
+                  <option value="pack">pack</option>
+                  <option value="box">box</option>
+                  <option value="kg">kg</option>
+                  <option value="litre">litre</option>
+                  <option value="jerrycan">jerrycan</option>
+                  <option value="crate">crate</option>
+                  <option value="jar">jar</option>
+                  <option value="bottle">bottle</option>
+                </select>
+              </div>
+              <div>
+                <label>Initial / Current Stock *</label>
+                <input
+                  type="number"
+                  step="any"
+                  min="0"
+                  name="stock"
+                  id="peStock"
+                  required
+                  value="0"
+                />
+              </div>
+              <div>
+                <label>Cost / Buy Price (RWF) *</label>
+                <input type="number" step="any" min="0" name="buy" id="peBuy" required value="0" />
+              </div>
+              <div>
+                <label>Selling Price (RWF) *</label>
+                <input
+                  type="number"
+                  step="any"
+                  min="0"
+                  name="sell"
+                  id="peSell"
+                  required
+                  value="0"
+                />
+              </div>
+              <div>
+                <label>Barcode / SKU (Optional)</label>
+                <input name="sku" id="peSku" placeholder="e.g. 600123456789" />
+              </div>
+              <div>
+                <label>Supplier</label>
+                <input name="supplier" id="peSupplier" value="Local Supplier" />
+              </div>
+              <div>
+                <label>Low Stock Alert Level</label>
+                <input type="number" min="0" name="minStock" id="peMinStock" value="5" />
+              </div>
+            </div>
+            <div style="margin-top: 20px; display: flex; justify-content: flex-end; gap: 10px">
+              <button type="button" class="btn btn-outline" onclick="closeProductModal()">
+                Cancel
+              </button>
+              <button type="submit" class="btn btn-primary">Save Product</button>
+            </div>
+          </form>
+        </div>
+      </div>
+    </div>
+
+    <!-- Stock Adjustment Modal -->
+    <div class="modal-bg" id="adjustModal">
+      <div class="modal" style="max-width: 440px">
+        <div class="modal-head">
+          <h3>Adjust Stock</h3>
+          <span class="modal-close" onclick="closeAdjustModal()">✕</span>
+        </div>
+        <div class="modal-content">
+          <form id="adjustForm" onsubmit="handleStockAdjust(event)">
+            <input type="hidden" name="prodId" id="adjProdId" />
+            <div
+              style="margin-bottom: 12px; padding: 10px; background: #f9fafb; border-radius: 6px"
+            >
+              <div style="font-weight: 700" id="adjProdName">Product</div>
+              <div style="font-size: 12px; color: var(--muted)">
+                Current Stock:
+                <span id="adjCurrStock" style="font-weight: 700; color: #111">0</span>
+              </div>
+            </div>
+            <div style="margin-bottom: 12px">
+              <label>Adjustment Type *</label>
+              <select name="type" id="adjType" required onchange="updateAdjQtyHint()">
+                <option value="add">Add Stock (Restock / Inventory Count Found)</option>
+                <option value="damage">Remove: Damaged / Broken Item</option>
+                <option value="expired">Remove: Expired Item</option>
+                <option value="loss">Remove: Lost / Discrepancy</option>
+                <option value="set">Set Exact New Stock Count</option>
+              </select>
+            </div>
+            <div style="margin-bottom: 12px">
+              <label id="adjQtyLabel">Quantity to Add/Remove *</label>
+              <input
+                type="number"
+                step="any"
+                min="0.01"
+                name="qty"
+                id="adjQty"
+                required
+                placeholder="Enter quantity"
+              />
+            </div>
+            <div style="margin-bottom: 16px">
+              <label>Reason / Notes</label>
+              <input
+                name="reason"
+                id="adjReason"
+                placeholder="e.g. Broken bottle during shelf stocking"
+              />
+            </div>
+            <div style="display: flex; justify-content: flex-end; gap: 10px">
+              <button type="button" class="btn btn-outline" onclick="closeAdjustModal()">
+                Cancel
+              </button>
+              <button type="submit" class="btn btn-primary">Apply Adjustment</button>
+            </div>
+          </form>
+        </div>
+      </div>
+    </div>
+
+    <!-- Import Preview Modal -->
+    <div class="modal-bg" id="importModal">
+      <div class="modal" style="max-width: 750px">
+        <div class="modal-head">
+          <h3>Review & Confirm File Import</h3>
+          <span class="modal-close" onclick="closeImportModal()">✕</span>
+        </div>
+        <div class="modal-content">
+          <div
+            style="
+              margin-bottom: 14px;
+              padding: 12px;
+              background: #f0fdf4;
+              border: 1px solid #bbf7d0;
+              border-radius: 8px;
+              color: #166534;
+              font-size: 13px;
+            "
+          >
+            <strong>Detected <span id="importItemCount">0</span> products</strong> ready to import.
+          </div>
+          <div class="table-wrap" style="max-height: 350px; overflow-y: auto">
+            <table id="importPreviewTable">
+              <thead>
+                <tr>
+                  <th>Product Name</th>
+                  <th>Category</th>
+                  <th>Unit</th>
+                  <th class="text-right">Qty / Stock</th>
+                  <th class="text-right">Cost Price</th>
+                  <th class="text-right">Selling Price</th>
+                  <th>Supplier</th>
+                </tr>
+              </thead>
+              <tbody></tbody>
+            </table>
+          </div>
+        </div>
+        <div class="modal-actions">
+          <button class="btn btn-outline" onclick="closeImportModal()">Cancel</button>
+          <button class="btn btn-success" onclick="commitImportData()">
+            ✅ Confirm & Import to Store
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Toast Notification -->
+    <div class="toast" id="toast"></div>
+
+    <!-- ================= JAVASCRIPT CORE ================= -->
+    <script>
+      /* =========================================================================
+   1. STORE STATE & DATA PERSISTENCE
+   ========================================================================= */
+      const DB_KEY = "primemart_store_v3";
+
+      // Default State (clean and ready for store setup / Excel import)
+      let store = loadStore();
+      let posCart = [];
+      let activePosCategory = "All";
+      let pendingImportRows = [];
+
+      function getDefaultSettings() {
+        return {
+          name: "Prime Mart Supermarket",
+          address: "Kigali, Rwanda",
+          phone: "+250 788 000 000",
+          tin: "",
+          currency: "RWF",
+          lowStockThreshold: 5,
+          receiptPaperSize: "thermal",
+          receiptFooter: "Thank you for shopping at Prime Mart Supermarket! Welcome again.",
+        };
+      }
+
+      function loadStore() {
+        try {
+          const raw = localStorage.getItem(DB_KEY);
+          if (raw) {
+            const parsed = JSON.parse(raw);
+            if (parsed && Array.isArray(parsed.products)) {
+              return parsed;
+            }
+          }
+        } catch (e) {
+          console.error("Error loading database:", e);
+        }
+        return {
+          settings: getDefaultSettings(),
+          products: [],
+          sales: [],
+          stockInward: [],
+          adjustments: [],
+          meta: { recNo: 0, dnNo: 0 },
+        };
+      }
+
+      function saveStore() {
+        try {
+          localStorage.setItem(DB_KEY, JSON.stringify(store));
+        } catch (e) {
+          toast("Storage error! Database might be full.", "error");
+        }
+      }
+
+      /* =========================================================================
+   2. FORMATTING & UTILITIES
+   ========================================================================= */
+      const fmt = (n) => new Intl.NumberFormat("en-US").format(Math.round(Number(n) || 0));
+      const fmtDec = (n) =>
+        new Intl.NumberFormat("en-US", {
+          minimumFractionDigits: 0,
+          maximumFractionDigits: 2,
+        }).format(Number(n) || 0);
+
+      function fmtDate(isoStr) {
+        if (!isoStr) return "";
+        const parts = isoStr.split("T")[0].split("-");
+        if (parts.length === 3) return `${parts[2]}/${parts[1]}/${parts[0]}`;
+        return isoStr;
+      }
+
+      function fmtDateTime(isoStr) {
+        if (!isoStr) return "";
+        const d = new Date(isoStr);
+        if (isNaN(d.getTime())) return isoStr;
+        const day = String(d.getDate()).padStart(2, "0");
+        const month = String(d.getMonth() + 1).padStart(2, "0");
+        const year = d.getFullYear();
+        const hours = String(d.getHours()).padStart(2, "0");
+        const mins = String(d.getMinutes()).padStart(2, "0");
+        return `${day}/${month}/${year} ${hours}:${mins}`;
+      }
+
+      function todayISO() {
+        return new Date().toISOString().slice(0, 10);
+      }
+
+      function toast(msg, type = "success") {
+        const t = document.getElementById("toast");
+        t.textContent = msg;
+        t.className = "toast show " + type;
+        setTimeout(() => t.classList.remove("show"), 3500);
+      }
+
+      /* =========================================================================
+   3. NAVIGATION
+   ========================================================================= */
+      function switchTab(tabId) {
+        document.querySelectorAll(".nav button").forEach((b) => {
+          b.classList.toggle("active", b.dataset.tab === tabId);
+        });
+        document.querySelectorAll(".page").forEach((p) => (p.hidden = true));
+        const target = document.getElementById("page-" + tabId);
+        if (target) target.hidden = false;
+
+        const sidebar = document.getElementById("sidebar");
+        if (window.innerWidth <= 768) sidebar.classList.remove("open");
+
+        if (tabId === "dashboard") renderDashboard();
+        if (tabId === "pos") initPosScreen();
+        if (tabId === "inventory") renderInventoryPage();
+        if (tabId === "addstock") initStockForm();
+        if (tabId === "stockhistory") renderStockHistoryPage();
+        if (tabId === "saleshistory") renderSalesHistoryPage();
+        if (tabId === "settings") initSettingsPage();
+      }
+
+      function toggleSidebar() {
+        document.getElementById("sidebar").classList.toggle("open");
+      }
+
+      document.querySelectorAll(".nav button").forEach((btn) => {
+        btn.addEventListener("click", () => switchTab(btn.dataset.tab));
+      });
+
+      /* =========================================================================
+   4. DASHBOARD MODULE
+   ========================================================================= */
+      function renderDashboard() {
+        updateStoreHeaderInfo();
+
+        const products = store.products || [];
+        const sales = store.sales || [];
+        const stockInward = store.stockInward || [];
+        const lowThresh = Number(store.settings?.lowStockThreshold) || 5;
+
+        const totalProducts = products.length;
+        const totalUnits = products.reduce((acc, p) => acc + (Number(p.stock) || 0), 0);
+        const totalStockCostVal = products.reduce(
+          (acc, p) => acc + Math.max(0, Number(p.stock) || 0) * (Number(p.buy) || 0),
+          0,
+        );
+        const totalStockRetailVal = products.reduce(
+          (acc, p) => acc + Math.max(0, Number(p.stock) || 0) * (Number(p.sell) || 0),
+          0,
+        );
+
+        const completedSales = sales.filter((s) => s.status !== "Voided");
+        const allTimeRevenue = completedSales.reduce(
+          (acc, s) => acc + (Number(s.grandTotal) || 0),
+          0,
+        );
+
+        // Profit calculations
+        let allTimeProfit = 0;
+        completedSales.forEach((s) => {
+          (s.items || []).forEach((item) => {
+            const profitPerUnit = (Number(item.sellPrice) || 0) - (Number(item.buyPrice) || 0);
+            allTimeProfit += profitPerUnit * (Number(item.qty) || 0);
+          });
+          if (s.discount) allTimeProfit -= Number(s.discount) || 0;
+        });
+
+        const outOfStockItems = products.filter((p) => (Number(p.stock) || 0) <= 0);
+        const lowStockItems = products.filter(
+          (p) => (Number(p.stock) || 0) > 0 && (Number(p.stock) || 0) <= lowThresh,
+        );
+
+        // Update Low Stock badge on sidebar
+        const lowBadge = document.getElementById("lowStockBadge");
+        const alertCount = outOfStockItems.length + lowStockItems.length;
+        if (alertCount > 0) {
+          lowBadge.textContent = alertCount;
+          lowBadge.style.display = "inline-block";
+        } else {
+          lowBadge.style.display = "none";
+        }
+
+        // Dashboard Alert Banner
+        const alertBanner = document.getElementById("dashboardAlertBanner");
+        if (alertCount > 0) {
+          alertBanner.style.display = "flex";
+          document.getElementById("dashAlertText").textContent =
+            `${outOfStockItems.length} items Out of Stock, ${lowStockItems.length} items Low on Stock!`;
+        } else {
+          alertBanner.style.display = "none";
+        }
+
+        const curr = store.settings.currency || "RWF";
+        const metricCardsHtml = `
+    <div class="card">
+      <div class="label">Total Products</div>
+      <div class="value">${fmt(totalProducts)}</div>
+      <div class="sub">${fmt(totalUnits)} units in stock</div>
+    </div>
+    <div class="card">
+      <div class="label">Inventory Value (Cost)</div>
+      <div class="value">${fmt(totalStockCostVal)} <span style="font-size:13px">${curr}</span></div>
+      <div class="sub">Retail Value: ${fmt(totalStockRetailVal)} ${curr}</div>
+    </div>
+    <div class="card">
+      <div class="label">All-Time Revenue</div>
+      <div class="value">${fmt(allTimeRevenue)} <span style="font-size:13px">${curr}</span></div>
+      <div class="sub">${completedSales.length} customer sales</div>
+    </div>
+    <div class="card">
+      <div class="label">Estimated Gross Profit</div>
+      <div class="value">${fmt(allTimeProfit)} <span style="font-size:13px">${curr}</span></div>
+      <div class="sub">Margin on completed sales</div>
+    </div>
+    <div class="card ${outOfStockItems.length > 0 ? "alert" : ""}">
+      <div class="label">Out of Stock Items</div>
+      <div class="value">${outOfStockItems.length}</div>
+      <div class="sub">Needs restocking</div>
+    </div>
+    <div class="card ${lowStockItems.length > 0 ? "warning" : ""}">
+      <div class="label">Low Stock (≤ ${lowThresh})</div>
+      <div class="value">${lowStockItems.length}</div>
+      <div class="sub">Re-order level alert</div>
+    </div>
+  `;
+        document.getElementById("dashboardMetrics").innerHTML = metricCardsHtml;
+
+        // Today's Sales calculation
+        const todayStr = todayISO();
+        const todaySales = completedSales.filter((s) => (s.date || "").startsWith(todayStr));
+        const todayRev = todaySales.reduce((acc, s) => acc + (Number(s.grandTotal) || 0), 0);
+        let todayProfit = 0;
+        todaySales.forEach((s) => {
+          (s.items || []).forEach((item) => {
+            todayProfit +=
+              ((Number(item.sellPrice) || 0) - (Number(item.buyPrice) || 0)) *
+              (Number(item.qty) || 0);
+          });
+          if (s.discount) todayProfit -= Number(s.discount) || 0;
+        });
+        const todayMargin = todayRev > 0 ? Math.round((todayProfit / todayRev) * 100) : 0;
+
+        document.getElementById("todaySalesVal").textContent = `${fmt(todayRev)} ${curr}`;
+        document.getElementById("todayOrdersCount").textContent =
+          `${todaySales.length} transactions today`;
+        document.getElementById("todayProfitVal").textContent = `${fmt(todayProfit)} ${curr}`;
+        document.getElementById("todayMarginVal").textContent = `${todayMargin}% gross margin`;
+        document.getElementById("todayDateLabel").textContent = fmtDate(todayStr);
+
+        renderDashboardTable();
+      }
+
+      function renderDashboardTable() {
+        const q = (document.getElementById("dashSearch")?.value || "").toLowerCase();
+        const lowThresh = Number(store.settings?.lowStockThreshold) || 5;
+        const products = (store.products || []).filter(
+          (p) =>
+            !q || p.name.toLowerCase().includes(q) || (p.category || "").toLowerCase().includes(q),
+        );
+
+        const tbody = document.querySelector("#dashTable tbody");
+        if (!products.length) {
+          tbody.innerHTML = `<tr><td colspan="7" class="text-center" style="color:var(--muted);padding:30px">
+      No products found in store. Click <strong>Import File</strong> or <strong>Add Product</strong> to populate your store inventory!
+    </td></tr>`;
+          return;
+        }
+
+        tbody.innerHTML = products
+          .slice(0, 15)
+          .map((p) => {
+            const stock = Number(p.stock) || 0;
+            const buy = Number(p.buy) || 0;
+            const sell = Number(p.sell) || 0;
+            const margin = sell - buy;
+            let badgeClass = "badge-green";
+            let statusText = "In Stock";
+            if (stock <= 0) {
+              badgeClass = "badge-red";
+              statusText = "Out of Stock";
+            } else if (stock <= lowThresh) {
+              badgeClass = "badge-orange";
+              statusText = "Low Stock";
+            }
+
+            return `
+      <tr>
+        <td><strong>${escapeHtml(p.name)}</strong></td>
+        <td><span class="badge badge-gray">${escapeHtml(p.category || "General")}</span></td>
+        <td class="text-right"><strong>${fmtDec(stock)}</strong> <small style="color:var(--muted)">${p.unit || "pcs"}</small></td>
+        <td class="text-right">${fmt(buy)}</td>
+        <td class="text-right">${fmt(sell)}</td>
+        <td class="text-right" style="color:#16a34a;font-weight:600">+${fmt(margin)}</td>
+        <td class="text-center"><span class="badge ${badgeClass}">${statusText}</span></td>
+      </tr>
+    `;
+          })
+          .join("");
+      }
+
+      /* =========================================================================
+   5. POINT OF SALE (POS) REGISTER & CART
+   ========================================================================= */
+      let posPaymentMethod = "Cash";
+
+      function initPosScreen() {
+        renderPosCategories();
+        renderPosGrid();
+        renderPosCart();
+        document.getElementById("posSearch").focus();
+      }
+
+      function renderPosCategories() {
+        const cats = new Set(["All"]);
+        (store.products || []).forEach((p) => {
+          if (p.category) cats.add(p.category);
+        });
+        const pillBox = document.getElementById("posCategoryPills");
+        pillBox.innerHTML = Array.from(cats)
+          .map(
+            (c) => `
+    <button class="category-pill ${activePosCategory === c ? "active" : ""}" onclick="setPosCategory('${escapeHtml(c)}')">${escapeHtml(c)}</button>
+  `,
+          )
+          .join("");
+      }
+
+      function setPosCategory(cat) {
+        activePosCategory = cat;
+        renderPosCategories();
+        renderPosGrid();
+      }
+
+      function renderPosGrid() {
+        const q = (document.getElementById("posSearch")?.value || "").toLowerCase().trim();
+        const lowThresh = Number(store.settings?.lowStockThreshold) || 5;
+        const curr = store.settings.currency || "RWF";
+
+        const prods = (store.products || []).filter((p) => {
+          if (activePosCategory !== "All" && p.category !== activePosCategory) return false;
+          if (q) {
+            const matchName = p.name.toLowerCase().includes(q);
+            const matchCat = (p.category || "").toLowerCase().includes(q);
+            const matchSku = (p.sku || "").toLowerCase() === q;
+            return matchName || matchCat || matchSku;
+          }
+          return true;
+        });
+
+        const grid = document.getElementById("posProductGrid");
+        if (!prods.length) {
+          grid.innerHTML = `<div style="grid-column:1/-1;text-align:center;color:var(--muted);padding:40px">
+      No products match your search.
+    </div>`;
+          return;
+        }
+
+        grid.innerHTML = prods
+          .map((p) => {
+            const stock = Number(p.stock) || 0;
+            const isOut = stock <= 0;
+            let stockColor = "#16a34a";
+            if (stock <= 0) stockColor = "var(--red)";
+            else if (stock <= lowThresh) stockColor = "var(--orange)";
+
+            return `
+      <div class="pos-card ${isOut ? "out-of-stock" : ""}" onclick="addToPosCart('${p.id}')">
+        <div>
+          <div class="p-name">${escapeHtml(p.name)}</div>
+          <div class="p-meta">${escapeHtml(p.category || "General")} · ${p.unit || "pcs"}</div>
+        </div>
+        <div style="display:flex;justify-content:space-between;align-items:flex-end;margin-top:8px">
+          <div class="p-price">${fmt(p.sell)} <small style="font-size:10px">${curr}</small></div>
+          <div class="p-stock" style="color:${stockColor}">
+            ${isOut ? "Out" : stock + " " + (p.unit || "pcs")}
+          </div>
+        </div>
+      </div>
+    `;
+          })
+          .join("");
+      }
+
+      function handlePosSearchKey(e) {
+        if (e.key === "Enter") {
+          const q = (e.target.value || "").trim();
+          if (!q) return;
+          // Exact barcode match first, then first product in filtered list
+          const exact = (store.products || []).find(
+            (p) =>
+              (p.sku && p.sku.toLowerCase() === q.toLowerCase()) ||
+              p.name.toLowerCase() === q.toLowerCase(),
+          );
+          if (exact) {
+            addToPosCart(exact.id);
+            e.target.value = "";
+            renderPosGrid();
+          } else {
+            const match = (store.products || []).find((p) =>
+              p.name.toLowerCase().includes(q.toLowerCase()),
+            );
+            if (match) {
+              addToPosCart(match.id);
+              e.target.value = "";
+              renderPosGrid();
+            }
+          }
+        }
+      }
+
+      function addToPosCart(prodId) {
+        const prod = (store.products || []).find((p) => p.id === prodId);
+        if (!prod) return;
+
+        const currentStock = Number(prod.stock) || 0;
+        if (currentStock <= 0) {
+          toast(`Cannot add "${prod.name}" — Product is out of stock!`, "error");
+          return;
+        }
+
+        const existing = posCart.find((item) => item.productId === prodId);
+        if (existing) {
+          if (existing.qty + 1 > currentStock) {
+            toast(`Only ${currentStock} units available in stock!`, "warning");
+            return;
+          }
+          existing.qty += 1;
+          existing.total = existing.qty * existing.sellPrice;
+        } else {
+          posCart.push({
+            productId: prod.id,
+            productName: prod.name,
+            category: prod.category || "General",
+            unit: prod.unit || "pcs",
+            buyPrice: Number(prod.buy) || 0,
+            sellPrice: Number(prod.sell) || 0,
+            qty: 1,
+            total: Number(prod.sell) || 0,
+          });
+        }
+
+        renderPosCart();
+      }
+
+      function updatePosCartQty(prodId, delta) {
+        const item = posCart.find((i) => i.productId === prodId);
+        if (!item) return;
+
+        const prod = (store.products || []).find((p) => p.id === prodId);
+        const maxStock = prod ? Number(prod.stock) || 0 : 999999;
+
+        const newQty = item.qty + delta;
+        if (newQty <= 0) {
+          posCart = posCart.filter((i) => i.productId !== prodId);
+        } else if (newQty > maxStock) {
+          toast(`Only ${maxStock} units available in stock!`, "warning");
+          item.qty = maxStock;
+          item.total = item.qty * item.sellPrice;
+        } else {
+          item.qty = newQty;
+          item.total = item.qty * item.sellPrice;
+        }
+        renderPosCart();
+      }
+
+      function setPosCartExactQty(prodId, val) {
+        const item = posCart.find((i) => i.productId === prodId);
+        if (!item) return;
+        const num = Number(val);
+        const prod = (store.products || []).find((p) => p.id === prodId);
+        const maxStock = prod ? Number(prod.stock) || 0 : 999999;
+
+        if (isNaN(num) || num <= 0) {
+          posCart = posCart.filter((i) => i.productId !== prodId);
+        } else if (num > maxStock) {
+          toast(`Only ${maxStock} units in stock!`, "warning");
+          item.qty = maxStock;
+          item.total = item.qty * item.sellPrice;
+        } else {
+          item.qty = num;
+          item.total = item.qty * item.sellPrice;
+        }
+        renderPosCart();
+      }
+
+      function removePosCartItem(prodId) {
+        posCart = posCart.filter((i) => i.productId !== prodId);
+        renderPosCart();
+      }
+
+      function clearPosCart() {
+        if (posCart.length && confirm("Clear all items from current cart?")) {
+          posCart = [];
+          renderPosCart();
+        }
+      }
+
+      function renderPosCart() {
+        const container = document.getElementById("posCartItems");
+        const curr = store.settings.currency || "RWF";
+
+        if (!posCart.length) {
+          container.innerHTML = `
+      <div style="text-align:center;color:var(--muted);padding:40px 10px">
+        <div style="font-size:32px;margin-bottom:6px">🛒</div>
+        <div style="font-weight:600">Cart is empty</div>
+        <div style="font-size:12px;margin-top:2px">Click products or scan barcodes to add items</div>
+      </div>
+    `;
+          updatePosCartTotals();
+          return;
+        }
+
+        container.innerHTML = posCart
+          .map(
+            (item) => `
+    <div class="cart-item">
+      <div class="cart-item-info">
+        <div class="cart-item-name" title="${escapeHtml(item.productName)}">${escapeHtml(item.productName)}</div>
+        <div class="cart-item-unit">${fmt(item.sellPrice)} ${curr} / ${item.unit}</div>
+      </div>
+      <div class="cart-qty-ctrl">
+        <button class="qty-btn" onclick="updatePosCartQty('${item.productId}', -1)">−</button>
+        <input class="cart-qty-input" type="number" step="any" min="0.01" value="${item.qty}" onchange="setPosCartExactQty('${item.productId}', this.value)">
+        <button class="qty-btn" onclick="updatePosCartQty('${item.productId}', 1)">+</button>
+      </div>
+      <div class="cart-item-total">${fmt(item.total)}</div>
+      <button class="cart-item-del" onclick="removePosCartItem('${item.productId}')" title="Remove">✕</button>
+    </div>
+  `,
+          )
+          .join("");
+
+        updatePosCartTotals();
+      }
+
+      function updatePosCartTotals() {
+        const curr = store.settings.currency || "RWF";
+        const subtotal = posCart.reduce((acc, i) => acc + (Number(i.total) || 0), 0);
+        const discountInput = document.getElementById("posDiscount");
+        const discount = Math.max(0, Number(discountInput?.value) || 0);
+        const grandTotal = Math.max(0, subtotal - discount);
+
+        document.getElementById("posSubtotal").textContent = `${fmt(subtotal)} ${curr}`;
+        document.getElementById("posGrandTotal").textContent = `${fmt(grandTotal)} ${curr}`;
+        calcChangeDue();
+      }
+
+      function setPosPaymentMethod(method) {
+        posPaymentMethod = method;
+        document.querySelectorAll(".pay-btn").forEach((btn) => {
+          btn.classList.toggle("active", btn.dataset.pay === method);
+        });
+        const cashBox = document.getElementById("cashCalcBox");
+        if (method === "Cash") {
+          cashBox.style.display = "grid";
+        } else {
+          cashBox.style.display = "none";
+        }
+      }
+
+      function calcChangeDue() {
+        const curr = store.settings.currency || "RWF";
+        const subtotal = posCart.reduce((acc, i) => acc + (Number(i.total) || 0), 0);
+        const discount = Math.max(0, Number(document.getElementById("posDiscount")?.value) || 0);
+        const grandTotal = Math.max(0, subtotal - discount);
+
+        const cashGiven = Number(document.getElementById("posCashGiven")?.value) || 0;
+        const change = Math.max(0, cashGiven - grandTotal);
+        document.getElementById("posChangeDue").value = `${fmt(change)} ${curr}`;
+      }
+
+      function checkoutPosOrder() {
+        if (!posCart.length) {
+          toast("Cannot checkout: Cart is empty!", "error");
+          return;
+        }
+
+        // Final stock verification
+        for (const item of posCart) {
+          const prod = (store.products || []).find((p) => p.id === item.productId);
+          const available = prod ? Number(prod.stock) || 0 : 0;
+          if (item.qty > available) {
+            toast(`Stock shortage for "${item.productName}"! Available: ${available}`, "error");
+            return;
+          }
+        }
+
+        const subtotal = posCart.reduce((acc, i) => acc + (Number(i.total) || 0), 0);
+        const discount = Math.max(0, Number(document.getElementById("posDiscount")?.value) || 0);
+        const grandTotal = Math.max(0, subtotal - discount);
+        const cashGiven = Number(document.getElementById("posCashGiven")?.value) || grandTotal;
+        const changeDue = Math.max(0, cashGiven - grandTotal);
+
+        store.meta.recNo = (store.meta.recNo || 0) + 1;
+        const recCode = "REC-" + String(store.meta.recNo).padStart(5, "0");
+
+        const saleRecord = {
+          id: "sale_" + Date.now(),
+          rec: recCode,
+          date: new Date().toISOString(),
+          customerName: document.getElementById("posCustName")?.value.trim() || "",
+          customerPhone: document.getElementById("posCustPhone")?.value.trim() || "",
+          notes: document.getElementById("posOrderNotes")?.value.trim() || "",
+          paymentMethod: posPaymentMethod,
+          items: JSON.parse(JSON.stringify(posCart)),
+          subtotal: subtotal,
+          discount: discount,
+          grandTotal: grandTotal,
+          amountPaid: cashGiven,
+          changeDue: changeDue,
+          status: "Completed",
+        };
+
+        // Deduct stock from inventory
+        posCart.forEach((item) => {
+          const prod = store.products.find((p) => p.id === item.productId);
+          if (prod) {
+            prod.stock = Math.max(0, (Number(prod.stock) || 0) - item.qty);
+            prod.updatedAt = Date.now();
+          }
+        });
+
+        store.sales.push(saleRecord);
+        saveStore();
+
+        // Reset cart
+        posCart = [];
+        document.getElementById("posDiscount").value = "0";
+        document.getElementById("posCashGiven").value = "";
+        document.getElementById("posCustName").value = "";
+        document.getElementById("posCustPhone").value = "";
+        document.getElementById("posOrderNotes").value = "";
+        renderPosCart();
+        renderPosGrid();
+
+        toast(`Sale completed successfully: ${recCode}`);
+        openCustomerReceipt(saleRecord);
+      }
+
+      /* =========================================================================
+   6. RECEIPT & DELIVERY NOTE RENDERING
+   ========================================================================= */
+      function openCustomerReceipt(sale) {
+        const s = store.settings;
+        const curr = s.currency || "RWF";
+        const isThermal = s.receiptPaperSize === "thermal";
+
+        const itemsRows = (sale.items || [])
+          .map(
+            (item) => `
+    <tr>
+      <td style="padding:4px 2px">
+        <strong>${escapeHtml(item.productName)}</strong>
+        <div style="font-size:10px;color:#555">${fmt(item.sellPrice)} x ${item.qty} ${item.unit}</div>
+      </td>
+      <td style="text-align:right;vertical-align:top;padding:4px 2px">
+        ${fmt(item.total)}
+      </td>
+    </tr>
+  `,
+          )
+          .join("");
+
+        const html = `
+    <div class="receipt-view ${isThermal ? "thermal" : ""}">
+      <div class="receipt-logo">🛒</div>
+      <div class="receipt-center">
+        <div class="receipt-title">${escapeHtml(s.name || "Prime Mart Supermarket")}</div>
+        <div style="font-size:11px">${escapeHtml(s.address || "Kigali, Rwanda")}</div>
+        <div style="font-size:11px">Tel: ${escapeHtml(s.phone || "")}</div>
+        ${s.tin ? `<div style="font-size:10px">TIN: ${escapeHtml(s.tin)}</div>` : ""}
+        <div style="margin-top:6px;font-weight:700;letter-spacing:1px">CUSTOMER RECEIPT</div>
+      </div>
+      
+      <div class="receipt-divider"></div>
+      
+      <div style="display:flex;justify-content:space-between;font-size:11px;margin-bottom:4px">
+        <span>Receipt #: <strong>${sale.rec}</strong></span>
+        <span>${fmtDateTime(sale.date)}</span>
+      </div>
+      ${sale.customerName ? `<div style="font-size:11px;margin-bottom:4px">Customer: ${escapeHtml(sale.customerName)} ${sale.customerPhone ? "(" + escapeHtml(sale.customerPhone) + ")" : ""}</div>` : ""}
+      <div style="font-size:11px;margin-bottom:4px">Payment: <strong>${escapeHtml(sale.paymentMethod || "Cash")}</strong></div>
+
+      <div class="receipt-divider"></div>
+
+      <table class="receipt-table">
+        <thead>
+          <tr>
+            <th>Item & Qty</th>
+            <th style="text-align:right">Total (${curr})</th>
+          </tr>
+        </thead>
+        <tbody>
+          ${itemsRows}
+        </tbody>
+      </table>
+
+      <div class="receipt-divider"></div>
+
+      <div style="font-size:11.5px">
+        <div style="display:flex;justify-content:space-between;margin-bottom:2px">
+          <span>Subtotal:</span>
+          <span>${fmt(sale.subtotal)} ${curr}</span>
+        </div>
+        ${
+          sale.discount > 0
+            ? `
+          <div style="display:flex;justify-content:space-between;margin-bottom:2px;color:var(--red)">
+            <span>Discount:</span>
+            <span>-${fmt(sale.discount)} ${curr}</span>
+          </div>
+        `
+            : ""
+        }
+        <div style="display:flex;justify-content:space-between;font-size:13.5px;font-weight:800;margin-top:4px;border-top:1px dashed #000;padding-top:4px">
+          <span>GRAND TOTAL:</span>
+          <span>${fmt(sale.grandTotal)} ${curr}</span>
+        </div>
+        ${
+          sale.paymentMethod === "Cash" && sale.amountPaid
+            ? `
+          <div style="display:flex;justify-content:space-between;margin-top:4px;font-size:11px">
+            <span>Cash Paid:</span>
+            <span>${fmt(sale.amountPaid)} ${curr}</span>
+          </div>
+          <div style="display:flex;justify-content:space-between;font-size:11px">
+            <span>Change Due:</span>
+            <span>${fmt(sale.changeDue)} ${curr}</span>
+          </div>
+        `
+            : ""
+        }
+      </div>
+
+      ${sale.notes ? `<div style="margin-top:8px;font-size:10.5px"><strong>Notes:</strong> ${escapeHtml(sale.notes)}</div>` : ""}
+
+      <div class="receipt-divider"></div>
+      
+      <div class="receipt-center" style="font-size:11px;margin-top:8px">
+        ${escapeHtml(s.receiptFooter || "Thank you for your business!")}
+      </div>
+    </div>
+  `;
+
+        document.getElementById("modalTitle").textContent = `Receipt ${sale.rec}`;
+        document.getElementById("modalBody").innerHTML = html;
+        document.getElementById("mainModal").classList.add("open");
+      }
+
+      function openDeliveryNoteModal(dn) {
+        const s = store.settings;
+        const curr = s.currency || "RWF";
+
+        const html = `
+    <div class="receipt-view" style="max-width:440px">
+      <div class="receipt-center">
+        <div class="receipt-logo">📦</div>
+        <div class="receipt-title">${escapeHtml(s.name || "Prime Mart Supermarket")}</div>
+        <div style="font-size:11px">${escapeHtml(s.address || "Kigali, Rwanda")}</div>
+        <div style="font-weight:700;margin-top:6px;letter-spacing:1px">GOODS RECEIVED DELIVERY NOTE</div>
+      </div>
+      
+      <div class="receipt-divider"></div>
+
+      <div style="display:flex;justify-content:space-between;font-size:11.5px;margin-bottom:4px">
+        <span>Delivery Note #: <strong>${dn.dn}</strong></span>
+        <span>Date: ${fmtDate(dn.date)}</span>
+      </div>
+      <div style="font-size:11.5px;margin-bottom:4px">Supplier: <strong>${escapeHtml(dn.supplier || "Local Supplier")}</strong></div>
+
+      <div class="receipt-divider"></div>
+
+      <table class="receipt-table">
+        <thead>
+          <tr>
+            <th>Product</th>
+            <th style="text-align:right">Qty</th>
+            <th style="text-align:right">Unit Cost</th>
+            <th style="text-align:right">Total (${curr})</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td style="padding:4px 2px"><strong>${escapeHtml(dn.name)}</strong></td>
+            <td style="text-align:right;padding:4px 2px">${fmtDec(dn.qty)} ${dn.unit}</td>
+            <td style="text-align:right;padding:4px 2px">${fmt(dn.buy)}</td>
+            <td style="text-align:right;padding:4px 2px">${fmt(dn.qty * dn.buy)}</td>
+          </tr>
+        </tbody>
+      </table>
+
+      <div class="receipt-divider"></div>
+
+      <div style="display:flex;justify-content:space-between;font-size:13px;font-weight:800">
+        <span>TOTAL PURCHASE COST:</span>
+        <span>${fmt(dn.qty * dn.buy)} ${curr}</span>
+      </div>
+
+      <div style="margin-top:6px;font-size:11.5px">
+        <div>Registered Selling Price: <strong>${fmt(dn.sell)} ${curr} / ${dn.unit}</strong></div>
+      </div>
+
+      ${dn.notes ? `<div style="margin-top:8px;font-size:11px"><strong>Notes:</strong> ${escapeHtml(dn.notes)}</div>` : ""}
+
+      <div class="receipt-divider"></div>
+      <div class="receipt-center" style="font-size:11px">
+        Goods Verified & Received into Inventory Stock
+      </div>
+    </div>
+  `;
+
+        document.getElementById("modalTitle").textContent = `Delivery Note ${dn.dn}`;
+        document.getElementById("modalBody").innerHTML = html;
+        document.getElementById("mainModal").classList.add("open");
+      }
+
+      function closeMainModal() {
+        document.getElementById("mainModal").classList.remove("open");
+      }
+
+      /* =========================================================================
+   7. INVENTORY MODULE (PRODUCT LIST & MANAGEMENT)
+   ========================================================================= */
+      function renderInventoryPage() {
+        const q = (document.getElementById("invSearchInput")?.value || "").toLowerCase().trim();
+        const cat = document.getElementById("invCatFilter")?.value || "";
+        const status = document.getElementById("invStatusFilter")?.value || "";
+        const lowThresh = Number(store.settings?.lowStockThreshold) || 5;
+
+        // Populate category filter options
+        const catSel = document.getElementById("invCatFilter");
+        const existingCat = catSel.value;
+        const cats = new Set();
+        (store.products || []).forEach((p) => {
+          if (p.category) cats.add(p.category);
+        });
+        catSel.innerHTML =
+          '<option value="">All Categories</option>' +
+          Array.from(cats)
+            .map(
+              (c) =>
+                `<option value="${escapeHtml(c)}" ${existingCat === c ? "selected" : ""}>${escapeHtml(c)}</option>`,
+            )
+            .join("");
+
+        const filtered = (store.products || []).filter((p) => {
+          if (q) {
+            const matchName = p.name.toLowerCase().includes(q);
+            const matchCat = (p.category || "").toLowerCase().includes(q);
+            const matchSku = (p.sku || "").toLowerCase().includes(q);
+            if (!matchName && !matchCat && !matchSku) return false;
+          }
+          if (cat && p.category !== cat) return false;
+          const stock = Number(p.stock) || 0;
+          if (status === "in" && stock <= lowThresh) return false;
+          if (status === "low" && (stock <= 0 || stock > lowThresh)) return false;
+          if (status === "out" && stock > 0) return false;
+          return true;
+        });
+
+        const tbody = document.querySelector("#fullInventoryTable tbody");
+        if (!filtered.length) {
+          tbody.innerHTML = `<tr><td colspan="10" class="text-center" style="color:var(--muted);padding:36px">
+      No products found matching filters.
+    </td></tr>`;
+          return;
+        }
+
+        tbody.innerHTML = filtered
+          .map((p) => {
+            const stock = Number(p.stock) || 0;
+            const buy = Number(p.buy) || 0;
+            const sell = Number(p.sell) || 0;
+            const margin = sell - buy;
+            const totalVal = Math.max(0, stock) * buy;
+
+            let badgeClass = "badge-green";
+            let statusText = "In Stock";
+            if (stock <= 0) {
+              badgeClass = "badge-red";
+              statusText = "Out of Stock";
+            } else if (stock <= lowThresh) {
+              badgeClass = "badge-orange";
+              statusText = "Low Stock";
+            }
+
+            return `
+      <tr>
+        <td>
+          <strong>${escapeHtml(p.name)}</strong>
+          ${p.sku ? `<div style="font-size:11px;color:var(--muted)">SKU: ${escapeHtml(p.sku)}</div>` : ""}
+        </td>
+        <td><span class="badge badge-gray">${escapeHtml(p.category || "General")}</span></td>
+        <td>${p.unit || "pcs"}</td>
+        <td class="text-right"><strong>${fmtDec(stock)}</strong></td>
+        <td class="text-right">${fmt(buy)}</td>
+        <td class="text-right">${fmt(sell)}</td>
+        <td class="text-right" style="color:#16a34a;font-weight:600">+${fmt(margin)}</td>
+        <td class="text-right">${fmt(totalVal)}</td>
+        <td class="text-center"><span class="badge ${badgeClass}">${statusText}</span></td>
+        <td class="text-right" style="white-space:nowrap">
+          <button class="btn btn-outline btn-small" onclick="openEditProductModal('${p.id}')" title="Edit">✏️ Edit</button>
+          <button class="btn btn-outline btn-small" onclick="openAdjustModal('${p.id}')" title="Adjust Stock">⚖️ Stock</button>
+          <button class="btn btn-danger-outline btn-small" onclick="deleteProduct('${p.id}')" title="Delete">🗑️</button>
+        </td>
+      </tr>
+    `;
+          })
+          .join("");
+      }
+
+      function filterInventoryStatus(status) {
+        document.getElementById("invStatusFilter").value = status;
+        renderInventoryPage();
+      }
+
+      function resetInvFilters() {
+        document.getElementById("invSearchInput").value = "";
+        document.getElementById("invCatFilter").value = "";
+        document.getElementById("invStatusFilter").value = "";
+        renderInventoryPage();
+      }
+
+      /* =========================================================================
+   8. PRODUCT ADD / EDIT MODALS
+   ========================================================================= */
+      function openAddProductModal() {
+        document.getElementById("productEditForm").reset();
+        document.getElementById("peId").value = "";
+        document.getElementById("peMinStock").value = store.settings.lowStockThreshold || "5";
+        document.getElementById("prodModalTitle").textContent = "Add New Product";
+        document.getElementById("productModal").classList.add("open");
+      }
+
+      function openEditProductModal(id) {
+        const prod = store.products.find((p) => p.id === id);
+        if (!prod) return;
+        document.getElementById("peId").value = prod.id;
+        document.getElementById("peName").value = prod.name;
+        document.getElementById("peCategory").value = prod.category || "General";
+        document.getElementById("peUnit").value = prod.unit || "pcs";
+        document.getElementById("peStock").value = prod.stock || "0";
+        document.getElementById("peBuy").value = prod.buy || "0";
+        document.getElementById("peSell").value = prod.sell || "0";
+        document.getElementById("peSku").value = prod.sku || "";
+        document.getElementById("peSupplier").value = prod.supplier || "Local Supplier";
+        document.getElementById("peMinStock").value =
+          prod.minStock || store.settings.lowStockThreshold || "5";
+
+        document.getElementById("prodModalTitle").textContent = `Edit Product: ${prod.name}`;
+        document.getElementById("productModal").classList.add("open");
+      }
+
+      function closeProductModal() {
+        document.getElementById("productModal").classList.remove("open");
+      }
+
+      function saveProductForm(e) {
+        e.preventDefault();
+        const f = e.target;
+        const id = document.getElementById("peId").value;
+        const name = document.getElementById("peName").value.trim();
+        const category = document.getElementById("peCategory").value;
+        const unit = document.getElementById("peUnit").value;
+        const stock = Number(document.getElementById("peStock").value) || 0;
+        const buy = Number(document.getElementById("peBuy").value) || 0;
+        const sell = Number(document.getElementById("peSell").value) || 0;
+        const sku = document.getElementById("peSku").value.trim();
+        const supplier = document.getElementById("peSupplier").value.trim() || "Local Supplier";
+        const minStock = Number(document.getElementById("peMinStock").value) || 5;
+
+        if (
+          sell < buy &&
+          !confirm(
+            `Notice: Selling price (${sell}) is lower than purchase cost (${buy}). Do you want to proceed?`,
+          )
+        ) {
+          return;
+        }
+
+        if (id) {
+          // Edit
+          const prod = store.products.find((p) => p.id === id);
+          if (prod) {
+            prod.name = name;
+            prod.category = category;
+            prod.unit = unit;
+            prod.stock = stock;
+            prod.buy = buy;
+            prod.sell = sell;
+            prod.sku = sku;
+            prod.supplier = supplier;
+            prod.minStock = minStock;
+            prod.updatedAt = Date.now();
+            toast(`Updated product "${name}"`);
+          }
+        } else {
+          // Create new
+          const newProd = {
+            id: "p_" + Date.now() + "_" + Math.floor(Math.random() * 1000),
+            name: name,
+            category: category,
+            unit: unit,
+            stock: stock,
+            buy: buy,
+            sell: sell,
+            sku: sku,
+            supplier: supplier,
+            minStock: minStock,
+            createdAt: Date.now(),
+            updatedAt: Date.now(),
+          };
+          store.products.push(newProd);
+          toast(`Added new product "${name}"`);
+        }
+
+        saveStore();
+        closeProductModal();
+        renderInventoryPage();
+        renderDashboard();
+      }
+
+      function deleteProduct(id) {
+        const prod = store.products.find((p) => p.id === id);
+        if (!prod) return;
+        if (!confirm(`Are you sure you want to delete "${prod.name}" from inventory?`)) return;
+
+        store.products = store.products.filter((p) => p.id !== id);
+        saveStore();
+        renderInventoryPage();
+        renderDashboard();
+        toast(`Product deleted: ${prod.name}`);
+      }
+
+      /* =========================================================================
+   9. STOCK ADJUSTMENTS
+   ========================================================================= */
+      function openAdjustModal(id) {
+        const prod = store.products.find((p) => p.id === id);
+        if (!prod) return;
+        document.getElementById("adjProdId").value = prod.id;
+        document.getElementById("adjProdName").textContent =
+          `${prod.name} (${prod.category || "General"})`;
+        document.getElementById("adjCurrStock").textContent =
+          `${fmtDec(prod.stock || 0)} ${prod.unit || "pcs"}`;
+        document.getElementById("adjQty").value = "";
+        document.getElementById("adjReason").value = "";
+        document.getElementById("adjType").value = "add";
+        updateAdjQtyHint();
+        document.getElementById("adjustModal").classList.add("open");
+      }
+
+      function closeAdjustModal() {
+        document.getElementById("adjustModal").classList.remove("open");
+      }
+
+      function updateAdjQtyHint() {
+        const type = document.getElementById("adjType").value;
+        const label = document.getElementById("adjQtyLabel");
+        if (type === "add") label.textContent = "Quantity to Add *";
+        else if (type === "set") label.textContent = "Set New Exact Stock Count *";
+        else label.textContent = "Quantity to Remove / Deduct *";
+      }
+
+      function handleStockAdjust(e) {
+        e.preventDefault();
+        const id = document.getElementById("adjProdId").value;
+        const type = document.getElementById("adjType").value;
+        const qty = Number(document.getElementById("adjQty").value);
+        const reason = document.getElementById("adjReason").value.trim();
+
+        const prod = store.products.find((p) => p.id === id);
+        if (!prod || isNaN(qty) || qty < 0) return;
+
+        let oldStock = Number(prod.stock) || 0;
+        let newStock = oldStock;
+
+        if (type === "add") {
+          newStock = oldStock + qty;
+        } else if (type === "set") {
+          newStock = qty;
+        } else {
+          newStock = Math.max(0, oldStock - qty);
+        }
+
+        prod.stock = newStock;
+        prod.updatedAt = Date.now();
+
+        store.adjustments = store.adjustments || [];
+        store.adjustments.push({
+          id: "adj_" + Date.now(),
+          date: new Date().toISOString(),
+          productId: prod.id,
+          productName: prod.name,
+          type: type,
+          oldStock: oldStock,
+          newStock: newStock,
+          qtyChanged: newStock - oldStock,
+          reason: reason,
+        });
+
+        saveStore();
+        closeAdjustModal();
+        renderInventoryPage();
+        renderDashboard();
+        toast(`Stock adjusted for "${prod.name}" (Now: ${newStock} ${prod.unit})`);
+      }
+
+      /* =========================================================================
+   10. GOODS RECEIVED (STOCK INWARD)
+   ========================================================================= */
+      function initStockForm() {
+        initStockFormDates();
+        populateStockDatalist();
+      }
+
+      function initStockFormDates() {
+        const dateInput = document.getElementById("stockDate");
+        if (dateInput) dateInput.value = todayISO();
+      }
+
+      function populateStockDatalist() {
+        const dl = document.getElementById("stockProductDatalist");
+        if (!dl) return;
+        dl.innerHTML = (store.products || [])
+          .map(
+            (p) => `
+    <option value="${escapeHtml(p.name)}">${escapeHtml(p.category || "")} · Stock: ${fmtDec(p.stock)} ${p.unit} · Buy: ${fmt(p.buy)} RWF</option>
+  `,
+          )
+          .join("");
+      }
+
+      function autoFillStockFields() {
+        const name = document.getElementById("stockProdName").value.trim();
+        if (!name) return;
+        const existing = (store.products || []).find(
+          (p) => p.name.toLowerCase() === name.toLowerCase(),
+        );
+        if (existing) {
+          if (existing.category) document.getElementById("stockCategory").value = existing.category;
+          if (existing.unit) document.getElementById("stockUnit").value = existing.unit;
+          if (existing.buy) document.getElementById("stockBuyPrice").value = existing.buy;
+          if (existing.sell) document.getElementById("stockSellPrice").value = existing.sell;
+          if (existing.supplier) document.getElementById("stockSupplier").value = existing.supplier;
+          if (existing.sku) document.getElementById("stockSku").value = existing.sku;
+          calcStockInwardTotal();
+        }
+      }
+
+      function calcStockInwardTotal() {
+        const qty = Number(document.getElementById("stockQty")?.value) || 0;
+        const buy = Number(document.getElementById("stockBuyPrice")?.value) || 0;
+        const total = qty * buy;
+        const curr = store.settings.currency || "RWF";
+        document.getElementById("stockTotalCost").value = `${fmt(total)} ${curr}`;
+      }
+
+      function handleStockInward(e) {
+        e.preventDefault();
+        const f = e.target;
+        const name = document.getElementById("stockProdName").value.trim();
+        const category = document.getElementById("stockCategory").value;
+        const unit = document.getElementById("stockUnit").value;
+        const qty = Number(document.getElementById("stockQty").value);
+        const buy = Number(document.getElementById("stockBuyPrice").value);
+        const sell = Number(document.getElementById("stockSellPrice").value);
+        const supplier = document.getElementById("stockSupplier").value.trim() || "Local Supplier";
+        const date = document.getElementById("stockDate").value || todayISO();
+        const sku = document.getElementById("stockSku").value.trim();
+        const notes = document.getElementById("stockNotes").value.trim();
+
+        if (qty <= 0 || buy < 0 || sell < 0) {
+          toast("Please enter valid positive quantities and prices", "error");
+          return;
+        }
+        if (
+          sell < buy &&
+          !confirm(`Selling price (${sell}) is lower than purchase cost (${buy}). Continue?`)
+        ) {
+          return;
+        }
+
+        // Update or create product in store
+        let prod = (store.products || []).find((p) => p.name.toLowerCase() === name.toLowerCase());
+        if (prod) {
+          prod.stock = (Number(prod.stock) || 0) + qty;
+          prod.buy = buy;
+          prod.sell = sell;
+          prod.category = category;
+          prod.unit = unit;
+          if (sku) prod.sku = sku;
+          if (supplier) prod.supplier = supplier;
+          prod.updatedAt = Date.now();
+        } else {
+          prod = {
+            id: "p_" + Date.now() + "_" + Math.floor(Math.random() * 1000),
+            name: name,
+            category: category,
+            unit: unit,
+            stock: qty,
+            buy: buy,
+            sell: sell,
+            sku: sku,
+            supplier: supplier,
+            minStock: store.settings.lowStockThreshold || 5,
+            createdAt: Date.now(),
+            updatedAt: Date.now(),
+          };
+          store.products.push(prod);
+        }
+
+        // Create Delivery Note Record
+        store.meta.dnNo = (store.meta.dnNo || 0) + 1;
+        const dnCode = "DN-" + String(store.meta.dnNo).padStart(5, "0");
+
+        const inwardRecord = {
+          id: "dn_" + Date.now(),
+          dn: dnCode,
+          date: date,
+          supplier: supplier,
+          productId: prod.id,
+          name: name,
+          category: category,
+          unit: unit,
+          qty: qty,
+          buy: buy,
+          sell: sell,
+          totalCost: qty * buy,
+          notes: notes,
+        };
+
+        store.stockInward.push(inwardRecord);
+        saveStore();
+
+        f.reset();
+        initStockFormDates();
+        document.getElementById("stockTotalCost").value = `0 ${store.settings.currency || "RWF"}`;
+
+        toast(`Stock received for "${name}" (${qty} ${unit})`);
+        openDeliveryNoteModal(inwardRecord);
+      }
+
+      /* =========================================================================
+   11. STOCK INWARD HISTORY
+   ========================================================================= */
+      function renderStockHistoryPage() {
+        const q = (document.getElementById("stockHistSearch")?.value || "").toLowerCase().trim();
+        const list = (store.stockInward || [])
+          .filter((s) => {
+            if (!q) return true;
+            return (
+              (s.dn || "").toLowerCase().includes(q) ||
+              (s.supplier || "").toLowerCase().includes(q) ||
+              (s.name || "").toLowerCase().includes(q)
+            );
+          })
+          .slice()
+          .reverse();
+
+        const tbody = document.querySelector("#stockHistoryTable tbody");
+        if (!list.length) {
+          tbody.innerHTML = `<tr><td colspan="9" class="text-center" style="color:var(--muted);padding:30px">
+      No stock delivery records found.
+    </td></tr>`;
+          return;
+        }
+
+        tbody.innerHTML = list
+          .map(
+            (s) => `
+    <tr>
+      <td><strong>${s.dn}</strong></td>
+      <td>${fmtDate(s.date)}</td>
+      <td>${escapeHtml(s.supplier || "Local Supplier")}</td>
+      <td><strong>${escapeHtml(s.name)}</strong></td>
+      <td class="text-right"><strong>${fmtDec(s.qty)}</strong></td>
+      <td>${s.unit || "pcs"}</td>
+      <td class="text-right">${fmt(s.buy)}</td>
+      <td class="text-right"><strong>${fmt(s.qty * s.buy)}</strong></td>
+      <td class="text-right" style="white-space:nowrap">
+        <button class="btn btn-outline btn-small" onclick='openDeliveryNoteModal(${JSON.stringify(s).replace(/'/g, "&#39;")})'>View Note</button>
+        <button class="btn btn-danger-outline btn-small" onclick="deleteStockInward('${s.id}')">🗑️</button>
+      </td>
+    </tr>
+  `,
+          )
+          .join("");
+      }
+
+      function deleteStockInward(id) {
+        const entry = (store.stockInward || []).find((s) => s.id === id);
+        if (!entry) return;
+        if (
+          !confirm(
+            `Delete Delivery Note ${entry.dn}? Notice: This will delete the log record only.`,
+          )
+        )
+          return;
+
+        store.stockInward = store.stockInward.filter((s) => s.id !== id);
+        saveStore();
+        renderStockHistoryPage();
+        toast("Delivery note deleted");
+      }
+
+      /* =========================================================================
+   12. SALES HISTORY MODULE
+   ========================================================================= */
+      function renderSalesHistoryPage() {
+        const from = document.getElementById("salesHistFrom")?.value || "";
+        const to = document.getElementById("salesHistTo")?.value || "";
+        const q = (document.getElementById("salesHistQuery")?.value || "").toLowerCase().trim();
+        const curr = store.settings.currency || "RWF";
+
+        const list = (store.sales || [])
+          .filter((s) => {
+            const sDate = (s.date || "").slice(0, 10);
+            if (from && sDate < from) return false;
+            if (to && sDate > to) return false;
+            if (q) {
+              const matchRec = (s.rec || "").toLowerCase().includes(q);
+              const matchCust = (s.customerName || "").toLowerCase().includes(q);
+              const matchItems = (s.items || []).some((i) =>
+                i.productName.toLowerCase().includes(q),
+              );
+              if (!matchRec && !matchCust && !matchItems) return false;
+            }
+            return true;
+          })
+          .slice()
+          .reverse();
+
+        const tbody = document.querySelector("#salesHistoryTable tbody");
+        if (!list.length) {
+          tbody.innerHTML = `<tr><td colspan="8" class="text-center" style="color:var(--muted);padding:30px">
+      No sales records found.
+    </td></tr>`;
+          return;
+        }
+
+        tbody.innerHTML = list
+          .map((s) => {
+            const isVoid = s.status === "Voided";
+            const itemsSummary = (s.items || [])
+              .map((i) => `${i.productName} (${i.qty})`)
+              .join(", ");
+
+            return `
+      <tr style="${isVoid ? "opacity:0.5;background:#fef2f2" : ""}">
+        <td><strong>${s.rec}</strong></td>
+        <td>${fmtDateTime(s.date)}</td>
+        <td>${escapeHtml(s.customerName || "Walk-in Customer")}</td>
+        <td style="max-width:260px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="${escapeHtml(itemsSummary)}">
+          ${escapeHtml(itemsSummary || "-")}
+        </td>
+        <td class="text-right"><strong>${fmt(s.grandTotal)} ${curr}</strong></td>
+        <td><span class="badge badge-gray">${escapeHtml(s.paymentMethod || "Cash")}</span></td>
+        <td class="text-center">
+          <span class="badge ${isVoid ? "badge-red" : "badge-green"}">${s.status || "Completed"}</span>
+        </td>
+        <td class="text-right" style="white-space:nowrap">
+          <button class="btn btn-outline btn-small" onclick='openCustomerReceipt(${JSON.stringify(s).replace(/'/g, "&#39;")})'>Receipt</button>
+          ${!isVoid ? `<button class="btn btn-danger-outline btn-small" onclick="voidSaleTransaction('${s.id}')">Void / Refund</button>` : ""}
+        </td>
+      </tr>
+    `;
+          })
+          .join("");
+      }
+
+      function clearSalesHistFilters() {
+        document.getElementById("salesHistFrom").value = "";
+        document.getElementById("salesHistTo").value = "";
+        document.getElementById("salesHistQuery").value = "";
+        renderSalesHistoryPage();
+      }
+
+      function voidSaleTransaction(id) {
+        const sale = store.sales.find((s) => s.id === id);
+        if (!sale || sale.status === "Voided") return;
+
+        if (
+          !confirm(
+            `Are you sure you want to VOID and refund sale ${sale.rec}?\n\nThis will restore all ${sale.items.length} items back into inventory stock!`,
+          )
+        ) {
+          return;
+        }
+
+        // Restore inventory items
+        (sale.items || []).forEach((item) => {
+          const prod = store.products.find((p) => p.id === item.productId);
+          if (prod) {
+            prod.stock = (Number(prod.stock) || 0) + (Number(item.qty) || 0);
+            prod.updatedAt = Date.now();
+          }
+        });
+
+        sale.status = "Voided";
+        saveStore();
+        renderSalesHistoryPage();
+        renderDashboard();
+        toast(`Transaction ${sale.rec} voided & stock restored!`, "warning");
+      }
+
+      /* =========================================================================
+   13. EXCEL / CSV IMPORT & PARSING (100% OFFLINE CAPABLE)
+   ========================================================================= */
+      // Drag & Drop Setup
+      const dropZone = document.getElementById("dropZone");
+      ["dragenter", "dragover"].forEach((name) => {
+        dropZone?.addEventListener(name, (e) => {
+          e.preventDefault();
+          dropZone.classList.add("dragover");
+        });
+      });
+      ["dragleave", "drop"].forEach((name) => {
+        dropZone?.addEventListener(name, (e) => {
+          e.preventDefault();
+          dropZone.classList.remove("dragover");
+        });
+      });
+      dropZone?.addEventListener("drop", (e) => {
+        const files = e.dataTransfer?.files;
+        if (files && files.length) {
+          parseUploadFile(files[0]);
+        }
+      });
+
+      function handleFileSelected(e) {
+        const files = e.target.files;
+        if (files && files.length) {
+          parseUploadFile(files[0]);
+        }
+      }
+
+      function parseUploadFile(file) {
+        const ext = file.name.split(".").pop().toLowerCase();
+
+        if (ext === "csv" || ext === "txt") {
+          const reader = new FileReader();
+          reader.onload = (e) => {
+            try {
+              const text = e.target.result;
+              const rows = parseCsvText(text);
+              processParsedTableRows(rows);
+            } catch (err) {
+              toast("Failed to parse CSV file: " + err.message, "error");
+            }
+          };
+          reader.readAsText(file);
+        } else if (ext === "xlsx" || ext === "xls") {
+          if (typeof XLSX !== "undefined") {
+            const reader = new FileReader();
+            reader.onload = (e) => {
+              try {
+                const data = new Uint8Array(e.target.result);
+                const workbook = XLSX.read(data, { type: "array" });
+                const firstSheetName = workbook.SheetNames[0];
+                const sheet = workbook.Sheets[firstSheetName];
+                const rows = XLSX.utils.sheet_to_json(sheet, { header: 1, defval: "" });
+                processParsedTableRows(rows);
+              } catch (err) {
+                toast("Failed to parse Excel file: " + err.message, "error");
+              }
+            };
+            reader.readAsArrayBuffer(file);
+          } else {
+            toast(
+              "Excel library unavailable offline. Please save/export as .CSV file and upload directly!",
+              "warning",
+            );
+          }
+        } else {
+          toast("Unsupported file type. Please upload a .csv or .xlsx file.", "error");
+        }
+      }
+
+      // Pure JS CSV parser that works 100% offline with quoted fields, commas, tabs, semicolons
+      function parseCsvText(text) {
+        const lines = [];
+        let row = [];
+        let inQuotes = false;
+        let curVal = "";
+
+        // Detect delimiter (, or ; or \t)
+        const firstLine = text.split(/\r?\n/)[0] || "";
+        let delimiter = ",";
+        if (firstLine.includes("\t")) delimiter = "\t";
+        else if (firstLine.includes(";") && !firstLine.includes(",")) delimiter = ";";
+
+        for (let i = 0; i < text.length; i++) {
+          const char = text[i];
+          const nextChar = text[i + 1];
+
+          if (char === '"') {
+            if (inQuotes && nextChar === '"') {
+              curVal += '"';
+              i++;
+            } else {
+              inQuotes = !inQuotes;
+            }
+          } else if (char === delimiter && !inQuotes) {
+            row.push(curVal.trim());
+            curVal = "";
+          } else if ((char === "\r" || char === "\n") && !inQuotes) {
+            if (char === "\r" && nextChar === "\n") i++;
+            row.push(curVal.trim());
+            curVal = "";
+            if (row.some((cell) => cell.length > 0)) lines.push(row);
+            row = [];
+          } else {
+            curVal += char;
+          }
+        }
+        if (curVal || row.length) {
+          row.push(curVal.trim());
+          if (row.some((cell) => cell.length > 0)) lines.push(row);
+        }
+        return lines;
+      }
+
+      function processParsedTableRows(rows) {
+        if (!rows || rows.length < 2) {
+          toast("Uploaded file is empty or has no data rows!", "error");
+          return;
+        }
+
+        // Find header row (search first 5 rows for standard keywords)
+        let headerIdx = -1;
+        for (let r = 0; r < Math.min(5, rows.length); r++) {
+          const rowStr = rows[r].map((c) => String(c).toLowerCase()).join(" ");
+          if (
+            rowStr.includes("product") ||
+            rowStr.includes("name") ||
+            rowStr.includes("item") ||
+            rowStr.includes("article") ||
+            rowStr.includes("description")
+          ) {
+            headerIdx = r;
+            break;
+          }
+        }
+        if (headerIdx === -1) headerIdx = 0;
+
+        const headers = rows[headerIdx].map((h) => String(h).trim().toLowerCase());
+
+        // Smart column mapping
+        const colMap = {
+          name: headers.findIndex(
+            (h) =>
+              h.includes("product") ||
+              h.includes("name") ||
+              h.includes("item") ||
+              h.includes("description") ||
+              h.includes("nom") ||
+              h.includes("article"),
+          ),
+          category: headers.findIndex(
+            (h) =>
+              h.includes("cat") ||
+              h.includes("group") ||
+              h.includes("type") ||
+              h.includes("depart"),
+          ),
+          unit: headers.findIndex(
+            (h) => h.includes("unit") || h.includes("unite") || h.includes("measure"),
+          ),
+          qty: headers.findIndex(
+            (h) =>
+              h.includes("qty") ||
+              h.includes("quant") ||
+              h.includes("stock") ||
+              h.includes("received") ||
+              h.includes("count"),
+          ),
+          buy: headers.findIndex(
+            (h) =>
+              h.includes("buy") ||
+              h.includes("purchase") ||
+              h.includes("cost") ||
+              h.includes("achat") ||
+              h.includes("cost price"),
+          ),
+          sell: headers.findIndex(
+            (h) =>
+              h.includes("sell") ||
+              h.includes("price") ||
+              h.includes("vente") ||
+              h.includes("retail"),
+          ),
+          supplier: headers.findIndex(
+            (h) => h.includes("supplier") || h.includes("vendor") || h.includes("fournisseur"),
+          ),
+          sku: headers.findIndex(
+            (h) => h.includes("sku") || h.includes("barcode") || h.includes("code"),
+          ),
+        };
+
+        // Fallback defaults if not matched by headers
+        if (colMap.name === -1) colMap.name = 0;
+        if (colMap.category === -1) colMap.category = 1;
+        if (colMap.unit === -1) colMap.unit = 2;
+        if (colMap.qty === -1) colMap.qty = 3;
+        if (colMap.buy === -1) colMap.buy = 4;
+        if (colMap.sell === -1) colMap.sell = 5;
+
+        const cleanNum = (v) => {
+          if (typeof v === "number") return v;
+          if (!v) return 0;
+          const cleaned = String(v).replace(/[^0-9.-]+/g, "");
+          return Number(cleaned) || 0;
+        };
+
+        const parsedItems = [];
+        for (let r = headerIdx + 1; r < rows.length; r++) {
+          const row = rows[r];
+          if (!row || !row.length) continue;
+          const name =
+            colMap.name !== -1 && row[colMap.name] ? String(row[colMap.name]).trim() : "";
+          if (!name || name.toLowerCase().includes("total") || name === "---") continue;
+
+          const category =
+            colMap.category !== -1 && row[colMap.category]
+              ? String(row[colMap.category]).trim()
+              : "General";
+          const unit =
+            colMap.unit !== -1 && row[colMap.unit] ? String(row[colMap.unit]).trim() : "pcs";
+          const qty = colMap.qty !== -1 ? cleanNum(row[colMap.qty]) : 0;
+          const buy = colMap.buy !== -1 ? cleanNum(row[colMap.buy]) : 0;
+          let sell = colMap.sell !== -1 ? cleanNum(row[colMap.sell]) : 0;
+
+          // If selling price missing, set reasonable default (e.g. cost + 15%)
+          if (!sell && buy > 0) sell = Math.round(buy * 1.18);
+
+          const supplier =
+            colMap.supplier !== -1 && row[colMap.supplier]
+              ? String(row[colMap.supplier]).trim()
+              : "Local Supplier";
+          const sku = colMap.sku !== -1 && row[colMap.sku] ? String(row[colMap.sku]).trim() : "";
+
+          parsedItems.push({
+            name,
+            category: category || "General",
+            unit: unit || "pcs",
+            stock: qty,
+            buy,
+            sell,
+            supplier: supplier || "Local Supplier",
+            sku,
+          });
+        }
+
+        if (!parsedItems.length) {
+          toast("No valid product records found in file!", "error");
+          return;
+        }
+
+        pendingImportRows = parsedItems;
+        openImportPreviewModal(parsedItems);
+      }
+
+      function openImportPreviewModal(items) {
+        document.getElementById("importItemCount").textContent = items.length;
+        const tbody = document.querySelector("#importPreviewTable tbody");
+        tbody.innerHTML = items
+          .slice(0, 30)
+          .map(
+            (p) => `
+    <tr>
+      <td><strong>${escapeHtml(p.name)}</strong></td>
+      <td>${escapeHtml(p.category)}</td>
+      <td>${p.unit}</td>
+      <td class="text-right">${fmtDec(p.stock)}</td>
+      <td class="text-right">${fmt(p.buy)}</td>
+      <td class="text-right">${fmt(p.sell)}</td>
+      <td>${escapeHtml(p.supplier)}</td>
+    </tr>
+  `,
+          )
+          .join("");
+
+        if (items.length > 30) {
+          tbody.innerHTML += `<tr><td colspan="7" class="text-center" style="color:var(--muted)">... and ${items.length - 30} more products</td></tr>`;
+        }
+
+        document.getElementById("importModal").classList.add("open");
+      }
+
+      function closeImportModal() {
+        document.getElementById("importModal").classList.remove("open");
+        document.getElementById("fileInput").value = "";
+      }
+
+      function commitImportData() {
+        if (!pendingImportRows.length) return;
+
+        const mode = document.querySelector('input[name="importMode"]:checked')?.value || "merge";
+
+        if (mode === "replace") {
+          store.products = [];
+        }
+
+        const existingMap = new Map();
+        store.products.forEach((p) => existingMap.set(p.name.toLowerCase(), p));
+
+        let importedCount = 0;
+        pendingImportRows.forEach((item) => {
+          const k = item.name.toLowerCase();
+          if (existingMap.has(k) && mode === "merge") {
+            const p = existingMap.get(k);
+            p.stock = (Number(p.stock) || 0) + item.stock;
+            if (item.buy > 0) p.buy = item.buy;
+            if (item.sell > 0) p.sell = item.sell;
+            if (item.category && item.category !== "General") p.category = item.category;
+            if (item.unit) p.unit = item.unit;
+            if (item.sku) p.sku = item.sku;
+            p.updatedAt = Date.now();
+          } else {
+            const newProd = {
+              id: "p_" + Date.now() + "_" + Math.floor(Math.random() * 100000),
+              name: item.name,
+              category: item.category,
+              unit: item.unit,
+              stock: item.stock,
+              buy: item.buy,
+              sell: item.sell,
+              sku: item.sku,
+              supplier: item.supplier,
+              minStock: store.settings.lowStockThreshold || 5,
+              createdAt: Date.now(),
+              updatedAt: Date.now(),
+            };
+            store.products.push(newProd);
+            existingMap.set(k, newProd);
+          }
+          importedCount++;
+        });
+
+        saveStore();
+        closeImportModal();
+        pendingImportRows = [];
+        toast(`Successfully imported ${importedCount} products into your store!`);
+        switchTab("inventory");
+      }
+
+      /* =========================================================================
+   14. SAMPLE TEMPLATES DOWNLOAD (CSV & EXCEL)
+   ========================================================================= */
+      function downloadSampleCsvTemplate() {
+        const headers = [
+          "Product Name",
+          "Category",
+          "Unit",
+          "Stock Quantity",
+          "Purchase Price (RWF)",
+          "Selling Price (RWF)",
+          "Supplier",
+          "Barcode",
+        ];
+        const sampleRows = [
+          ["Inyange Milk 1L", "Dairy", "pcs", "50", "800", "1000", "Inyange Industries", "6001001"],
+          [
+            "Crystal Cooking Oil 5L",
+            "Food",
+            "jerrycan",
+            "20",
+            "18000",
+            "21000",
+            "Local Supplier",
+            "6001002",
+          ],
+          ["Sugar 1kg", "Food", "pcs", "100", "1600", "2000", "Kabuye Sugar", "6001003"],
+          [
+            "Colgate Toothpaste 100ml",
+            "Personal Care",
+            "pcs",
+            "40",
+            "1200",
+            "1800",
+            "Local Distributor",
+            "6001004",
+          ],
+          ["Fanta Orange 330ml Can", "Beverages", "pcs", "72", "600", "800", "Bralirwa", "6001005"],
+        ];
+
+        let csvContent = "\uFEFF" + headers.join(",") + "\n";
+        sampleRows.forEach((r) => {
+          csvContent += r.map((cell) => `"${cell.replace(/"/g, '""')}"`).join(",") + "\n";
+        });
+
+        const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement("a");
+        a.href = url;
+        a.download = `PrimeMart_Product_Template.csv`;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        URL.revokeObjectURL(url);
+      }
+
+      function downloadSampleExcelTemplate() {
+        if (typeof XLSX !== "undefined") {
+          const headers = [
+            "Product Name",
+            "Category",
+            "Unit",
+            "Stock Quantity",
+            "Purchase Price (RWF)",
+            "Selling Price (RWF)",
+            "Supplier",
+            "Barcode",
+          ];
+          const sampleRows = [
+            ["Inyange Milk 1L", "Dairy", "pcs", 50, 800, 1000, "Inyange Industries", "6001001"],
+            [
+              "Crystal Cooking Oil 5L",
+              "Food",
+              "jerrycan",
+              20,
+              18000,
+              21000,
+              "Local Supplier",
+              "6001002",
+            ],
+            ["Sugar 1kg", "Food", "pcs", 100, 1600, 2000, "Kabuye Sugar", "6001003"],
+            [
+              "Colgate Toothpaste 100ml",
+              "Personal Care",
+              "pcs",
+              40,
+              1200,
+              1800,
+              "Local Distributor",
+              "6001004",
+            ],
+            ["Fanta Orange 330ml Can", "Beverages", "pcs", 72, 600, 800, "Bralirwa", "6001005"],
+          ];
+          const ws = XLSX.utils.aoa_to_sheet([headers, ...sampleRows]);
+          const wb = XLSX.utils.book_new();
+          XLSX.utils.book_append_sheet(wb, ws, "Products Template");
+          XLSX.writeFile(wb, "PrimeMart_Product_Template.xlsx");
+        } else {
+          downloadSampleCsvTemplate();
+        }
+      }
+
+      /* =========================================================================
+   15. EXPORT MODULES (EXCEL & CSV)
+   ========================================================================= */
+      function exportInventoryCsv() {
+        const headers = [
+          "Product Name",
+          "Category",
+          "Unit",
+          "Stock",
+          "Purchase Price",
+          "Selling Price",
+          "Margin",
+          "Stock Value",
+          "Supplier",
+          "Barcode",
+        ];
+        let csv = "\uFEFF" + headers.join(",") + "\n";
+        (store.products || []).forEach((p) => {
+          const stock = Number(p.stock) || 0;
+          const buy = Number(p.buy) || 0;
+          const sell = Number(p.sell) || 0;
+          const row = [
+            p.name,
+            p.category || "General",
+            p.unit || "pcs",
+            stock,
+            buy,
+            sell,
+            sell - buy,
+            stock * buy,
+            p.supplier || "",
+            p.sku || "",
+          ];
+          csv += row.map((cell) => `"${String(cell).replace(/"/g, '""')}"`).join(",") + "\n";
+        });
+        downloadBlobFile(csv, `PrimeMart_Inventory_${todayISO()}.csv`, "text/csv;charset=utf-8;");
+      }
+
+      function exportInventoryExcel() {
+        if (typeof XLSX !== "undefined") {
+          const headers = [
+            "Product Name",
+            "Category",
+            "Unit",
+            "Current Stock",
+            "Cost Price (RWF)",
+            "Selling Price (RWF)",
+            "Unit Margin (RWF)",
+            "Stock Value (RWF)",
+            "Supplier",
+            "Barcode",
+          ];
+          const rows = (store.products || []).map((p) => {
+            const stock = Number(p.stock) || 0;
+            const buy = Number(p.buy) || 0;
+            const sell = Number(p.sell) || 0;
+            return [
+              p.name,
+              p.category || "General",
+              p.unit || "pcs",
+              stock,
+              buy,
+              sell,
+              sell - buy,
+              stock * buy,
+              p.supplier || "",
+              p.sku || "",
+            ];
+          });
+          const ws = XLSX.utils.aoa_to_sheet([headers, ...rows]);
+          const wb = XLSX.utils.book_new();
+          XLSX.utils.book_append_sheet(wb, ws, "Inventory");
+          XLSX.writeFile(wb, `PrimeMart_Inventory_${todayISO()}.xlsx`);
+        } else {
+          exportInventoryCsv();
+        }
+      }
+
+      function exportSalesHistoryCsv() {
+        const headers = [
+          "Receipt #",
+          "Date & Time",
+          "Customer",
+          "Items Count",
+          "Payment Method",
+          "Subtotal (RWF)",
+          "Discount (RWF)",
+          "Grand Total (RWF)",
+          "Status",
+        ];
+        let csv = "\uFEFF" + headers.join(",") + "\n";
+        (store.sales || []).forEach((s) => {
+          const row = [
+            s.rec,
+            s.date,
+            s.customerName || "",
+            (s.items || []).length,
+            s.paymentMethod || "Cash",
+            s.subtotal || 0,
+            s.discount || 0,
+            s.grandTotal || 0,
+            s.status || "Completed",
+          ];
+          csv += row.map((cell) => `"${String(cell).replace(/"/g, '""')}"`).join(",") + "\n";
+        });
+        downloadBlobFile(csv, `PrimeMart_Sales_${todayISO()}.csv`, "text/csv;charset=utf-8;");
+      }
+
+      function exportSalesHistoryExcel() {
+        if (typeof XLSX !== "undefined") {
+          const headers = [
+            "Receipt #",
+            "Date & Time",
+            "Customer",
+            "Items Summary",
+            "Payment Method",
+            "Subtotal (RWF)",
+            "Discount (RWF)",
+            "Grand Total (RWF)",
+            "Status",
+          ];
+          const rows = (store.sales || []).map((s) => {
+            const summary = (s.items || []).map((i) => `${i.productName} (x${i.qty})`).join(", ");
+            return [
+              s.rec,
+              fmtDateTime(s.date),
+              s.customerName || "",
+              summary,
+              s.paymentMethod || "Cash",
+              s.subtotal || 0,
+              s.discount || 0,
+              s.grandTotal || 0,
+              s.status || "Completed",
+            ];
+          });
+          const ws = XLSX.utils.aoa_to_sheet([headers, ...rows]);
+          const wb = XLSX.utils.book_new();
+          XLSX.utils.book_append_sheet(wb, ws, "Sales");
+          XLSX.writeFile(wb, `PrimeMart_Sales_${todayISO()}.xlsx`);
+        } else {
+          exportSalesHistoryCsv();
+        }
+      }
+
+      function exportStockHistoryCsv() {
+        const headers = [
+          "DN #",
+          "Date",
+          "Supplier",
+          "Product Name",
+          "Category",
+          "Quantity",
+          "Unit",
+          "Cost Price (RWF)",
+          "Total Cost (RWF)",
+          "Notes",
+        ];
+        let csv = "\uFEFF" + headers.join(",") + "\n";
+        (store.stockInward || []).forEach((s) => {
+          const row = [
+            s.dn,
+            s.date,
+            s.supplier || "",
+            s.name,
+            s.category || "",
+            s.qty,
+            s.unit || "",
+            s.buy,
+            s.qty * s.buy,
+            s.notes || "",
+          ];
+          csv += row.map((cell) => `"${String(cell).replace(/"/g, '""')}"`).join(",") + "\n";
+        });
+        downloadBlobFile(
+          csv,
+          `PrimeMart_StockReceived_${todayISO()}.csv`,
+          "text/csv;charset=utf-8;",
+        );
+      }
+
+      function exportStockHistoryExcel() {
+        if (typeof XLSX !== "undefined") {
+          const headers = [
+            "DN #",
+            "Date",
+            "Supplier",
+            "Product Name",
+            "Category",
+            "Quantity",
+            "Unit",
+            "Cost Price (RWF)",
+            "Total Cost (RWF)",
+            "Notes",
+          ];
+          const rows = (store.stockInward || []).map((s) => [
+            s.dn,
+            fmtDate(s.date),
+            s.supplier || "",
+            s.name,
+            s.category || "",
+            s.qty,
+            s.unit || "",
+            s.buy,
+            s.qty * s.buy,
+            s.notes || "",
+          ]);
+          const ws = XLSX.utils.aoa_to_sheet([headers, ...rows]);
+          const wb = XLSX.utils.book_new();
+          XLSX.utils.book_append_sheet(wb, ws, "Stock Inward");
+          XLSX.writeFile(wb, `PrimeMart_StockReceived_${todayISO()}.xlsx`);
+        } else {
+          exportStockHistoryCsv();
+        }
+      }
+
+      function downloadBlobFile(content, fileName, mimeType) {
+        const blob = new Blob([content], { type: mimeType });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement("a");
+        a.href = url;
+        a.download = fileName;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        URL.revokeObjectURL(url);
+      }
+
+      /* =========================================================================
+   16. BACKUP & RESTORE
+   ========================================================================= */
+      function downloadBackupFile() {
+        const jsonStr = JSON.stringify(store, null, 2);
+        downloadBlobFile(jsonStr, `PrimeMart_Backup_${todayISO()}.json`, "application/json");
+        toast("Database backup file downloaded successfully!");
+      }
+
+      function restoreBackupFile(e) {
+        const file = e.target.files?.[0];
+        if (!file) return;
+
+        const reader = new FileReader();
+        reader.onload = (ev) => {
+          try {
+            const parsed = JSON.parse(ev.target.result);
+            if (parsed && Array.isArray(parsed.products)) {
+              if (
+                confirm("Restoring will replace all current store data with this backup. Continue?")
+              ) {
+                store = parsed;
+                saveStore();
+                renderDashboard();
+                toast("Store database successfully restored from backup!");
+              }
+            } else {
+              toast("Invalid backup JSON structure!", "error");
+            }
+          } catch (err) {
+            toast("Failed to restore backup: " + err.message, "error");
+          }
+        };
+        reader.readAsText(file);
+      }
+
+      /* =========================================================================
+   17. SETTINGS & DANGER ZONE
+   ========================================================================= */
+      function initSettingsPage() {
+        const s = store.settings || getDefaultSettings();
+        document.getElementById("settingStoreName").value = s.name || "";
+        document.getElementById("settingAddress").value = s.address || "";
+        document.getElementById("settingPhone").value = s.phone || "";
+        document.getElementById("settingTin").value = s.tin || "";
+        document.getElementById("settingCurrency").value = s.currency || "RWF";
+        document.getElementById("settingLowStock").value = s.lowStockThreshold || 5;
+        document.getElementById("settingReceiptFormat").value = s.receiptPaperSize || "thermal";
+        document.getElementById("settingReceiptFooter").value = s.receiptFooter || "";
+      }
+
+      function saveStoreSettings(e) {
+        e.preventDefault();
+        store.settings = {
+          name:
+            document.getElementById("settingStoreName").value.trim() || "Prime Mart Supermarket",
+          address: document.getElementById("settingAddress").value.trim() || "Kigali, Rwanda",
+          phone: document.getElementById("settingPhone").value.trim() || "+250 788 000 000",
+          tin: document.getElementById("settingTin").value.trim(),
+          currency: document.getElementById("settingCurrency").value.trim() || "RWF",
+          lowStockThreshold: Number(document.getElementById("settingLowStock").value) || 5,
+          receiptPaperSize: document.getElementById("settingReceiptFormat").value,
+          receiptFooter: document.getElementById("settingReceiptFooter").value.trim(),
+        };
+        saveStore();
+        updateStoreHeaderInfo();
+        toast("Store settings saved successfully!");
+      }
+
+      function updateStoreHeaderInfo() {
+        const name = store.settings?.name || "Prime Mart";
+        const loc = store.settings?.address || "Kigali, Rwanda";
+        document.getElementById("sideStoreName").textContent = name;
+        document.getElementById("sideStoreLoc").textContent = loc;
+        document.getElementById("mobileStoreName").textContent = name;
+      }
+
+      function clearAllProducts() {
+        if (
+          !confirm(
+            "Are you sure you want to delete ALL products from your inventory?\n\nThis gives you an empty store ready for Excel/CSV import.",
+          )
+        )
+          return;
+        store.products = [];
+        saveStore();
+        renderInventoryPage();
+        renderDashboard();
+        toast("All products removed. Store inventory is now empty.", "warning");
+      }
+
+      function clearSalesHistory() {
+        if (!confirm("Are you sure you want to clear all sales transactions history?")) return;
+        store.sales = [];
+        store.meta.recNo = 0;
+        saveStore();
+        renderSalesHistoryPage();
+        renderDashboard();
+        toast("Sales history cleared.", "warning");
+      }
+
+      function loadSampleRwandaData() {
+        if (
+          !confirm(
+            "Load sample Rwanda supermarket products (Inyange, Crystal Oil, Colgate, Fanta, etc.)?",
+          )
+        )
+          return;
+
+        const sampleProducts = [
+          {
+            name: "Crystal Cooking Oil 5L",
+            category: "Food",
+            unit: "jerrycan",
+            stock: 15,
+            buy: 18500,
+            sell: 21000,
+            supplier: "Local Supplier",
+          },
+          {
+            name: "Inyange Whole Milk 1L",
+            category: "Dairy",
+            unit: "pcs",
+            stock: 60,
+            buy: 800,
+            sell: 1000,
+            supplier: "Inyange Industries",
+          },
+          {
+            name: "Indomie Noodles Chicken (40pcs)",
+            category: "Food",
+            unit: "carton",
+            stock: 10,
+            buy: 11500,
+            sell: 15000,
+            supplier: "Local Supplier",
+          },
+          {
+            name: "Sugar 1kg (Kabuye)",
+            category: "Food",
+            unit: "pcs",
+            stock: 45,
+            buy: 1650,
+            sell: 2000,
+            supplier: "Local Supplier",
+          },
+          {
+            name: "Colgate Triple Action 100ml",
+            category: "Personal Care",
+            unit: "pcs",
+            stock: 25,
+            buy: 1200,
+            sell: 1800,
+            supplier: "Local Supplier",
+          },
+          {
+            name: "Fanta Orange 330ml Can",
+            category: "Beverages",
+            unit: "pcs",
+            stock: 48,
+            buy: 650,
+            sell: 800,
+            supplier: "Bralirwa",
+          },
+          {
+            name: "Heineken 330ml Bottle",
+            category: "Beverages",
+            unit: "pcs",
+            stock: 30,
+            buy: 1200,
+            sell: 1500,
+            supplier: "Bralirwa",
+          },
+          {
+            name: "Inyange Apple Juice 1L",
+            category: "Beverages",
+            unit: "pcs",
+            stock: 20,
+            buy: 1950,
+            sell: 2500,
+            supplier: "Inyange Industries",
+          },
+          {
+            name: "Blue Band Margarine 500g",
+            category: "Food",
+            unit: "pcs",
+            stock: 18,
+            buy: 3400,
+            sell: 4200,
+            supplier: "Local Supplier",
+          },
+          {
+            name: "Supa Toilet Paper (Pack 10)",
+            category: "Household",
+            unit: "pack",
+            stock: 22,
+            buy: 3200,
+            sell: 4000,
+            supplier: "Local Supplier",
+          },
+          {
+            name: "Sunlight Washing Powder 1kg",
+            category: "Household",
+            unit: "pcs",
+            stock: 14,
+            buy: 1600,
+            sell: 2000,
+            supplier: "Local Supplier",
+          },
+          {
+            name: "Afiya Drinking Water 1.5L",
+            category: "Beverages",
+            unit: "pcs",
+            stock: 36,
+            buy: 450,
+            sell: 700,
+            supplier: "Local Supplier",
+          },
+        ];
+
+        sampleProducts.forEach((p) => {
+          const existing = store.products.find(
+            (x) => x.name.toLowerCase() === p.name.toLowerCase(),
+          );
+          if (existing) {
+            existing.stock += p.stock;
+          } else {
+            store.products.push({
+              id: "p_" + Date.now() + "_" + Math.floor(Math.random() * 100000),
+              name: p.name,
+              category: p.category,
+              unit: p.unit,
+              stock: p.stock,
+              buy: p.buy,
+              sell: p.sell,
+              supplier: p.supplier,
+              minStock: 5,
+              createdAt: Date.now(),
+              updatedAt: Date.now(),
+            });
+          }
+        });
+
+        saveStore();
+        renderDashboard();
+        renderInventoryPage();
+        toast("Sample Rwanda product catalog loaded!");
+      }
+
+      function factoryResetDatabase() {
+        if (
+          prompt(
+            "WARNING: This will completely wipe ALL settings, products, inventory, and sales history.\n\nType RESET below to confirm:",
+          ) === "RESET"
+        ) {
+          localStorage.removeItem(DB_KEY);
+          store = {
+            settings: getDefaultSettings(),
+            products: [],
+            sales: [],
+            stockInward: [],
+            adjustments: [],
+            meta: { recNo: 0, dnNo: 0 },
+          };
+          saveStore();
+          renderDashboard();
+          toast("Factory reset completed. System is ready as a new install.", "warning");
+        }
+      }
+
+      function escapeHtml(str) {
+        if (!str) return "";
+        return String(str)
+          .replace(/&/g, "&amp;")
+          .replace(/</g, "&lt;")
+          .replace(/>/g, "&gt;")
+          .replace(/"/g, "&quot;")
+          .replace(/'/g, "&#039;");
+      }
+
+      /* =========================================================================
+   18. APPLICATION INITIALIZATION
+   ========================================================================= */
+      window.addEventListener("DOMContentLoaded", () => {
+        updateStoreHeaderInfo();
+        renderDashboard();
+        initStockFormDates();
+      });
+    </script>
+  </body>
+</html>
