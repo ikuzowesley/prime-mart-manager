@@ -1674,14 +1674,13 @@
                 </div>
 
                 <div>
-                  <label>Purchase / Cost Price per Unit (RWF) *</label>
+                  <label>Purchase / Cost Price per Unit (RWF) (Optional)</label>
                   <input
                     type="number"
                     step="any"
                     min="0"
                     name="buy"
                     id="stockBuyPrice"
-                    required
                     placeholder="0"
                     oninput="calcStockInwardTotal()"
                   />
@@ -3530,18 +3529,20 @@
         const category = document.getElementById("stockCategory").value;
         const unit = document.getElementById("stockUnit").value;
         const qty = Number(document.getElementById("stockQty").value);
-        const buy = Number(document.getElementById("stockBuyPrice").value);
+        const buyVal = document.getElementById("stockBuyPrice").value.trim();
+        const buy = buyVal === "" ? 0 : Number(buyVal);
         const sell = Number(document.getElementById("stockSellPrice").value);
         const supplier = document.getElementById("stockSupplier").value.trim() || "Local Supplier";
         const date = document.getElementById("stockDate").value || todayISO();
         const sku = document.getElementById("stockSku").value.trim();
         const notes = document.getElementById("stockNotes").value.trim();
 
-        if (qty <= 0 || buy < 0 || sell < 0) {
+        if (qty <= 0 || isNaN(qty) || buy < 0 || isNaN(buy) || sell < 0 || isNaN(sell)) {
           toast("Please enter valid positive quantities and prices", "error");
           return;
         }
         if (
+          buy > 0 &&
           sell < buy &&
           !confirm(`Selling price (${sell}) is lower than purchase cost (${buy}). Continue?`)
         ) {
@@ -3550,9 +3551,14 @@
 
         // Update or create product in store
         let prod = (store.products || []).find((p) => p.name.toLowerCase() === name.toLowerCase());
+        let effectiveBuy = buy;
         if (prod) {
           prod.stock = (Number(prod.stock) || 0) + qty;
-          prod.buy = buy;
+          if (buyVal !== "") {
+            prod.buy = buy;
+          } else {
+            effectiveBuy = Number(prod.buy) || 0;
+          }
           prod.sell = sell;
           prod.category = category;
           prod.unit = unit;
@@ -3591,9 +3597,9 @@
           category: category,
           unit: unit,
           qty: qty,
-          buy: buy,
+          buy: effectiveBuy,
           sell: sell,
-          totalCost: qty * buy,
+          totalCost: qty * effectiveBuy,
           notes: notes,
         };
 
