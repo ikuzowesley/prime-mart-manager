@@ -2216,19 +2216,18 @@
                 />
               </div>
               <div>
-                <label>Cost / Buy Price (RWF) *</label>
-                <input type="number" step="any" min="0" name="buy" id="peBuy" required value="0" />
+                <label>Cost / Buy Price (RWF) (Optional)</label>
+                <input type="number" step="any" min="0" name="buy" id="peBuy" placeholder="Optional" />
               </div>
               <div>
-                <label>Selling Price (RWF) *</label>
+                <label>Selling Price (RWF) (Optional)</label>
                 <input
                   type="number"
                   step="any"
                   min="0"
                   name="sell"
                   id="peSell"
-                  required
-                  value="0"
+                  placeholder="Optional"
                 />
               </div>
               <div>
@@ -3306,8 +3305,10 @@
         document.getElementById("peCategory").value = prod.category || "General";
         document.getElementById("peUnit").value = prod.unit || "pcs";
         document.getElementById("peStock").value = prod.stock || "0";
-        document.getElementById("peBuy").value = prod.buy || "0";
-        document.getElementById("peSell").value = prod.sell || "0";
+        document.getElementById("peBuy").value =
+          prod.buy !== undefined && prod.buy !== null && prod.buy !== 0 ? prod.buy : "";
+        document.getElementById("peSell").value =
+          prod.sell !== undefined && prod.sell !== null && prod.sell !== 0 ? prod.sell : "";
         document.getElementById("peSku").value = prod.sku || "";
         document.getElementById("peSupplier").value = prod.supplier || "Local Supplier";
         document.getElementById("peMinStock").value =
@@ -3336,6 +3337,8 @@
         const minStock = Number(document.getElementById("peMinStock").value) || 5;
 
         if (
+          buy > 0 &&
+          sell > 0 &&
           sell < buy &&
           !confirm(
             `Notice: Selling price (${sell}) is lower than purchase cost (${buy}). Do you want to proceed?`,
